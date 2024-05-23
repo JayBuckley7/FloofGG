@@ -192,7 +192,7 @@ function updateDeckTooltips(deckId) {
 function test100Hands() {
     let totalHandValue = 0;
 
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 10000; i++) {
         let deckCopy = [...mainDeck];
         const testHand = [];
         
