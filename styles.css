@@ -1,0 +1,214 @@
+/* Reset some default browser styles */
+body, h1, h2, h3, p {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0e4ff; /* soft purple */
+    color: #332255; /* deep purple */
+    line-height: 1.6;
+    padding: 20px;
+}
+
+header {
+    background-color: #aa88cc; /* medium purple */
+    padding: 20px 0;
+    text-align: center;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+header h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+nav ul {
+    list-style-type: none;
+    padding: 0;
+    text-align: center;
+    background-color: #ddccff; /* light purple */
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+nav ul li {
+    display: inline;
+    margin-right: 20px;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: #332255;
+    padding: 10px 20px;
+    border-radius: 5px;
+    background-color: #aa88cc;
+    transition: background-color 0.3s;
+}
+
+nav ul li a:hover {
+    background-color: #9977bb;
+}
+
+main {
+    padding: 20px 0;
+}
+
+.featured-floofs {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.floof-card {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    background-color: #ffffff;
+    padding: 10px;
+    margin-bottom: 20px;
+    width: calc(50% - 10px);
+    transition: transform 0.2s;
+}
+
+.floof-card:hover {
+    transform: translateY(-5px);
+}
+
+.floof-card img {
+    max-width: 100%;
+    border-radius: 5px;
+}
+
+.floof-card h3 {
+    margin-top: 10px;
+    font-size: 1.5em;
+}
+
+.floof-news {
+    padding: 20px 0;
+    background-color: #e0d4ff; /* very light purple */
+    border-radius: 10px;
+}
+.floof-card {
+    position: relative;  /* To position the button relative to the card */
+}
+
+.floof-header {
+    display: flex;  /* To align items horizontally */
+    justify-content: space-between;  /* To put space between the h3 and the button */
+    align-items: center;  /* To vertically center the h3 and the button */
+}
+
+.discord-invite-btn {
+    display: inline-flex;  /* To layout icon and text horizontally */
+    align-items: center;  /* To center the icon and text vertically */
+    background-color: #5865F2;
+    color: white;
+    padding: 5px 15px;
+    border-radius: 5px;
+    transition: 0.3s;
+    margin-left: 10px;  /* To give some space between the h3 and the button */
+    text-decoration: none;  /* To remove the underline */
+}
+
+.discord-invite-btn:hover {
+    background-color: #4854D4;
+}
+
+.discord-invite-btn i {
+    margin-right: 5px;  /* To give some space between the icon and the text */
+}
+.social-invite-btn {
+    display: inline-block;
+    padding: 10px 15px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #fff;
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+    margin-top: 10px; /* Spacing between the two buttons */
+}
+
+.social-invite-btn i {
+    margin-right: 10px;  /* Space between the icon and text */
+	width: 1px; /* You can adjust this size as needed */
+    vertical-align: middle;
+    margin-right: 10px;
+}
+
+.social-icon {
+    width: 40px; /* You can adjust this size as needed */
+    vertical-align: middle;
+    margin-right: 10px;
+}
+
+.upvote-btn {
+	background-color: #4CAF50;
+	color: white;
+	border: none;
+	padding: 10px 24px;
+	text-align: center;
+	text-decoration: none;
+	display: inline-block;
+	font-size: 16px;
+	border-radius: 4px;
+	cursor: pointer;
+}
+.upvote-button {
+    background: linear-gradient(to right, #FFD700, #FFB300); /* gold gradient */
+    padding: 12px 24px;
+    border-radius: 60px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    display: inline-flex;
+    align-items: center;  /* center the items vertically */
+    margin-right: 15px;   /* space between the button and vote counter */
+	text-decoration: none;
+
+}
+
+.upvote-button:hover {
+    background: linear-gradient(to right, #FFC400, #FFA100); /* darker gold gradient for hover */
+}
+
+.upvote-button a {
+    text-decoration: none;
+    color: black;
+    display: flex;
+    align-items: center;
+	text-decoration: none;
+
+}
+
+.upvote-button i {
+    font-size: 20px;  /* bigger arrow icon */
+    margin-right: 8px;  /* space between the icon and the text */
+	text-decoration: none;
+
+}
+
+.vote-count {
+    font-size: 1.5em;  /* bigger font for the vote count */
+    font-weight: bold;  /* bold weight */
+    vertical-align: middle;  /* vertically align with the button */
+}
+.upvote-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;  /* Adjust this value to increase or decrease the spacing between the button and vote count */
+}
+
+
+
+footer {
+    text-align: center;
+    padding: 20px 0;
+    margin-top: 20px;
+    background-color: #aa88cc;
+    border-radius: 10px;
+}
+
