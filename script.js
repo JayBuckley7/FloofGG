@@ -25,9 +25,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Initialize card values to 0
+    // Attach event listeners for increment and decrement buttons only once
     document.getElementById('incrementValue').addEventListener('click', () => updateCardValue(currentCardId, 1));
     document.getElementById('decrementValue').addEventListener('click', () => updateCardValue(currentCardId, -1));
+
+    // Load card values from the appropriate storage
+    loadValuesFromStorage();
+
+    // Set up a MutationObserver to update tooltips dynamically
+    observeTooltips();
 });
 
 let mainDeck = [];
@@ -113,6 +119,7 @@ function displayCards(cardIds, containerId) {
     cardIds.forEach(cardId => {
         const cardElement = document.createElement('div');
         cardElement.className = 'card';
+        cardElement.dataset.cardId = cardId; // Set data attribute for card ID
         cardElement.innerHTML = `
             <img src="https://images.ygoprodeck.com/images/cards/${cardId}.jpg" alt="Card ${cardId}">
             <div class="tooltip">Card ID: ${cardId}<br>Value: ${cardValues[cardId]}</div>
@@ -162,27 +169,23 @@ function updateCardValue(cardId, increment) {
     cardValues[cardId] += increment;
     document.getElementById('cardValue').innerText = `Value: ${cardValues[cardId]}`;
 
-    // Update the tooltip content for all cards with the updated value
-    const tooltips = document.querySelectorAll('.tooltip');
-    tooltips.forEach(tooltip => {
-        if (tooltip.innerText.includes(`Card ID: ${cardId}`)) {
-            tooltip.innerHTML = `Card ID: ${cardId}<br>Value: ${cardValues[cardId]}`;
-        }
-    });
-
     // Update tooltips immediately in the main deck, extra deck, and side deck
     updateDeckTooltips('mainDeck');
     updateDeckTooltips('extraDeck');
     updateDeckTooltips('sideDeck');
+
+    // Save updated values to the appropriate storage
+    saveValuesToStorage();
 }
 
 function updateDeckTooltips(deckId) {
     const deck = document.getElementById(deckId);
     if (deck) {
-        const tooltips = deck.querySelectorAll('.tooltip');
-        tooltips.forEach(tooltip => {
-            const cardId = tooltip.innerText.split(' ')[2]; // Extract card ID
-            if (cardValues[cardId] !== undefined) {
+        const cards = deck.querySelectorAll('.card');
+        cards.forEach(card => {
+            const cardId = card.dataset.cardId;
+            const tooltip = card.querySelector('.tooltip');
+            if (tooltip) {
                 tooltip.innerHTML = `Card ID: ${cardId}<br>Value: ${cardValues[cardId]}`;
             }
         });
@@ -192,7 +195,7 @@ function updateDeckTooltips(deckId) {
 function test100Hands() {
     let totalHandValue = 0;
 
-    for (let i = 0; i < 10000; i++) {
+    for (let i = 0; i < 100; i++) {
         let deckCopy = [...mainDeck];
         const testHand = [];
         
@@ -217,6 +220,8 @@ function calculateHandValueForTest(hand) {
     return totalValue;
 }
 
+const DEV = true; // Set to true for local development
+
 function saveValues() {
     const lines = [];
     lines.push('#main');
@@ -239,4 +244,82 @@ function saveValues() {
     a.download = 'deck_with_values.ydk';
     a.click();
     URL.revokeObjectURL(url);
+}
+
+function setCookie(name, value, days) {
+    const date = new Date();
+    date.setTime(date.getTime() + (days*24*60*60*1000));
+    const expires = "expires=" + date.toUTCString();
+    document.cookie = name + "=" + value + ";" + expires + ";path=/";
+}
+
+function getCookie(name) {
+    const nameEQ = name + "=";
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') {
+            c = c.substring(1);
+        }
+        if (c.indexOf(nameEQ) === 0) {
+            return c.substring(nameEQ.length, c.length);
+        }
+    }
+    return null;
+}
+
+function saveValuesToCookie() {
+    setCookie('cardValues', JSON.stringify(cardValues), 365);
+}
+
+function loadValuesFromCookie() {
+    const cookieValue = getCookie('cardValues');
+    if (cookieValue) {
+        const loadedValues = JSON.parse(cookieValue);
+        for (const [cardId, value] of Object.entries(loadedValues)) {
+            cardValues[cardId] = value;
+        }
+    }
+}
+
+function saveValuesToLocalStorage() {
+    localStorage.setItem('cardValues', JSON.stringify(cardValues));
+}
+
+function loadValuesFromLocalStorage() {
+    const storedValues = localStorage.getItem('cardValues');
+    if (storedValues) {
+        const loadedValues = JSON.parse(storedValues);
+        for (const [cardId, value] of Object.entries(loadedValues)) {
+            cardValues[cardId] = value;
+        }
+    }
+}
+
+function saveValuesToStorage() {
+    if (DEV) {
+        saveValuesToLocalStorage();
+    } else {
+        saveValuesToCookie();
+    }
+}
+
+function loadValuesFromStorage() {
+    if (DEV) {
+        loadValuesFromLocalStorage();
+    } else {
+        loadValuesFromCookie();
+    }
+}
+
+function observeTooltips() {
+    const observer = new MutationObserver(() => {
+        updateDeckTooltips('mainDeck');
+        updateDeckTooltips('extraDeck');
+        updateDeckTooltips('sideDeck');
+    });
+
+    observer.observe(document.getElementById('mainDeck'), { childList: true });
+    observer.observe(document.getElementById('extraDeck'), { childList: true });
+    observer.observe(document.getElementById('sideDeck'), { childList: true });
 }

@@ -91,9 +91,6 @@ main {
     background-color: #e0d4ff; /* very light purple */
     border-radius: 10px;
 }
-.floof-card {
-    position: relative;  /* To position the button relative to the card */
-}
 
 .floof-header {
     display: flex;  /* To align items horizontally */
@@ -120,6 +117,7 @@ main {
 .discord-invite-btn i {
     margin-right: 5px;  /* To give some space between the icon and the text */
 }
+
 .social-invite-btn {
     display: inline-block;
     padding: 10px 15px;
@@ -134,7 +132,7 @@ main {
 
 .social-invite-btn i {
     margin-right: 10px;  /* Space between the icon and text */
-	width: 1px; /* You can adjust this size as needed */
+    width: 1px; /* You can adjust this size as needed */
     vertical-align: middle;
     margin-right: 10px;
 }
@@ -146,17 +144,18 @@ main {
 }
 
 .upvote-btn {
-	background-color: #4CAF50;
-	color: white;
-	border: none;
-	padding: 10px 24px;
-	text-align: center;
-	text-decoration: none;
-	display: inline-block;
-	font-size: 16px;
-	border-radius: 4px;
-	cursor: pointer;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
 }
+
 .upvote-button {
     background: linear-gradient(to right, #FFD700, #FFB300); /* gold gradient */
     padding: 12px 24px;
@@ -167,8 +166,7 @@ main {
     display: inline-flex;
     align-items: center;  /* center the items vertically */
     margin-right: 15px;   /* space between the button and vote counter */
-	text-decoration: none;
-
+    text-decoration: none;
 }
 
 .upvote-button:hover {
@@ -180,15 +178,13 @@ main {
     color: black;
     display: flex;
     align-items: center;
-	text-decoration: none;
-
+    text-decoration: none;
 }
 
 .upvote-button i {
     font-size: 20px;  /* bigger arrow icon */
     margin-right: 8px;  /* space between the icon and the text */
-	text-decoration: none;
-
+    text-decoration: none;
 }
 
 .vote-count {
@@ -196,6 +192,7 @@ main {
     font-weight: bold;  /* bold weight */
     vertical-align: middle;  /* vertically align with the button */
 }
+
 .upvote-container {
     display: flex;
     align-items: center;
@@ -210,19 +207,56 @@ footer {
     border-radius: 10px;
 }
 
-body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    margin: 20px;
-    background-color: #f0f8ff; /* Light blue color to indicate CSS is loaded */
+/* Styles specific to the Yu-Gi-Oh! Deck Viewer */
+body.deck-viewer {
+    background-color: #f8f9fa; /* Light grey background */
+    color: #343a40; /* Dark grey text */
+}
+
+header.deck-viewer {
+    background-color: #6c757d; /* Medium grey */
+    padding: 10px 0; /* Reduced padding */
+}
+
+header.deck-viewer h1 {
+    font-size: 2em; /* Reduced font size */
+    color: #ffffff; /* White text */
+}
+
+header.deck-viewer p {
+    color: #ced4da; /* Light grey text */
+}
+
+nav.deck-viewer ul {
+    background-color: #adb5bd; /* Lighter grey */
+}
+
+nav.deck-viewer ul li a {
+    color: #ffffff; /* White text */
+    background-color: #495057; /* Dark grey */
+}
+
+nav.deck-viewer ul li a:hover {
+    background-color: #343a40; /* Darker grey */
+}
+
+main.deck-viewer {
+    padding: 20px 0;
+}
+
+section.deck-viewer {
+    background-color: #ffffff; /* White background */
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .deck {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    background-color: #f9f9f9; /* Light grey background for better contrast */
-    border: 2px solid #ccc; /* Border to make it visually distinctive */
+    background-color: #e9ecef; /* Light grey background for better contrast */
+    border: 2px solid #dee2e6; /* Light grey border */
     padding: 10px;
     margin-bottom: 20px;
     width: 1100px; /* Fixed width to fit 10 cards per row (10 * 100px card width + 9 * 10px margin) */
@@ -244,13 +278,14 @@ body {
 
 .card img {
     width: 100%;
+    border-radius: 5px;
 }
 
 .card .tooltip {
     visibility: hidden;
     width: 200px;
-    background-color: black;
-    color: #fff;
+    background-color: #495057; /* Dark grey */
+    color: #ffffff; /* White text */
     text-align: center;
     border-radius: 5px;
     padding: 5px;
@@ -271,8 +306,17 @@ body {
 button {
     padding: 10px 20px;
     font-size: 16px;
-    margin: 20px 0;
+    margin: 20px 10px;
     cursor: pointer;
+    background-color: #6c757d; /* Darker medium grey */
+    color: #ffffff; /* White text */
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #495057;
 }
 
 /* Modal styles */
@@ -285,12 +329,11 @@ button {
     width: 100%; /* Full width */
     height: 100%; /* Full height */
     overflow: auto; /* Enable scroll if needed */
-    background-color: rgb(0,0,0); /* Fallback color */
     background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
 }
 
 .modal-content {
-    background-color: #fefefe;
+    background-color: #ffffff;
     margin: 15% auto; /* 15% from the top and centered */
     padding: 20px;
     border: 1px solid #888;
@@ -326,4 +369,12 @@ button {
     margin: 0 5px;
     padding: 10px 20px;
     font-size: 16px;
+}
+
+footer {
+    text-align: center;
+    padding: 20px 0;
+    margin-top: 20px;
+    background-color: #aa88cc;
+    border-radius: 10px;
 }
