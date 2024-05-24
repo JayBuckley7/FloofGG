@@ -1,0 +1,17 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import './Navbar.css';
+
+const Navbar = () => {
+    return (
+        <nav>
+            <ul>
+                <li><Link to="/">Home</Link></li>
+                <li><Link to="/top-floofs">Top Floofs</Link></li>
+                <li><Link to="/deck-viewer">Deck Viewer</Link></li>
+            </ul>
+        </nav>
+    );
+};
+
+export default Navbar;

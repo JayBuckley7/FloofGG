@@ -6,8 +6,8 @@ body, h1, h2, h3, p {
 
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #f0e4ff; /* soft purple */
-    color: #332255; /* deep purple */
+    background-color: #f0f8ff;
+    color: #366885; /* deep purple */
     line-height: 1.6;
     padding: 20px;
 }

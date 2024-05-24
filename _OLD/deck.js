@@ -41,7 +41,7 @@ let currentCardId = '';
 let currentCombination = null;
 
 // Initialize card values to 0
-const cardValues = {};
+export const cardValues = {};
 
 function handleFile(event) {
     const file = event.target.files[0];
