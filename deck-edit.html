@@ -29,7 +29,10 @@
             <input type="file" id="deckFile" accept=".ydk">
             <div id="mainDeckContainer">
                 <h2>Main Deck</h2>
-                <div id="mainDeck" class="deck"></div>
+                <div id="mainDeck" class="deck">
+                    <!-- Combination setup elements -->
+                </div>
+                <div id="combinationSetup"></div>
             </div>
             <div id="extraDeckContainer">
                 <h2>Extra Deck</h2>
@@ -63,13 +66,12 @@
             <p id="cardValue">Value: 0</p>
             <button id="incrementValue">+</button>
             <button id="decrementValue">-</button>
+            <button id="addCombinationButton">Add Combination</button>
         </div>
     </div>
 
-  
-    <p>&copy; 2024 Floof.gg</p>
-   
-
-    <script src="script.js"></script>
+    <script src="storage.js"></script>
+    <script src="deck.js"></script>
+    <script src="combinations.js"></script>
 </body>
 </html>
