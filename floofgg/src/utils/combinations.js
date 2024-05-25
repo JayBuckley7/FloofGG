@@ -32,6 +32,8 @@ function setCombinationType(type) {
     currentCombinationType = type;
 }
 
+export let combinations = [];
+
 function saveCombination() {
     const selectedCards = Array.from(document.querySelectorAll('.card.selected')).map(card => card.dataset.cardId);
     if (selectedCombinationCard && selectedCards.length > 0 && currentCombinationType) {
