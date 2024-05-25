@@ -188,7 +188,7 @@ function updateCardValue(cardId, increment) {
     saveValuesToStorage();
 }
 
-function updateDeckTooltips(deckId) {
+export function updateDeckTooltips(deckId) {
     const deck = document.getElementById(deckId);
     if (deck) {
         const tooltips = deck.querySelectorAll('.tooltip');
@@ -201,7 +201,7 @@ function updateDeckTooltips(deckId) {
     }
 }
 
-function test100Hands() {
+export function test100Hands() {
     let totalHandValue = 0;
 
     for (let i = 0; i < 100; i++) {
@@ -221,7 +221,7 @@ function test100Hands() {
     document.getElementById('averageHandValue').innerText = `Average Hand Value: ${averageHandValue.toFixed(2)}`;
 }
 
-function calculateHandValueForTest(hand) {
+export function calculateHandValueForTest(hand) {
     let totalValue = 0;
     hand.forEach(cardId => {
         totalValue += cardValues[cardId] || 0;
@@ -231,7 +231,7 @@ function calculateHandValueForTest(hand) {
 
 const DEV = true; // Set to true for local development
 
-function saveValues() {
+export function saveValues() {
     const lines = [];
     lines.push('#main');
     mainDeck.forEach(cardId => {

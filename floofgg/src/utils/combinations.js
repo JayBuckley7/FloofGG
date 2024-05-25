@@ -1,8 +1,10 @@
+import { currentCardId } from '../utils/deck.js';
+
 let combinationMode = false;
 let selectedCombinationCard = null;
 let currentCombinationType = '';
 
-function startCombinationSetup() {
+export function startCombinationSetup() {
     document.getElementById('cardModal').style.display = "none"; // Close the modal
     document.getElementById('mainDeck').classList.add('combination-mode');
     combinationMode = true;

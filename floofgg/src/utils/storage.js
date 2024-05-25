@@ -1,3 +1,4 @@
+import { cardValues, mainDeck, extraDeck, sideDeck } from './deck';
 const DEV = true; // Set to true for local development
 
 function setCookie(name, value, days) {
@@ -22,11 +23,11 @@ function getCookie(name) {
     return null;
 }
 
-function saveValuesToCookie() {
+export function saveValuesToCookie() {
     setCookie('cardValues', JSON.stringify(cardValues), 365);
 }
 
-function loadValuesFromCookie() {
+export function loadValuesFromCookie() {
     const cookieValue = getCookie('cardValues');
     if (cookieValue) {
         const loadedValues = JSON.parse(cookieValue);
@@ -36,11 +37,11 @@ function loadValuesFromCookie() {
     }
 }
 
-function saveValuesToLocalStorage() {
+export function saveValuesToLocalStorage() {
     localStorage.setItem('cardValues', JSON.stringify(cardValues));
 }
 
-function loadValuesFromLocalStorage() {
+export function loadValuesFromLocalStorage() {
     const storedValues = localStorage.getItem('cardValues');
     if (storedValues) {
         const loadedValues = JSON.parse(storedValues);
@@ -50,7 +51,7 @@ function loadValuesFromLocalStorage() {
     }
 }
 
-function saveValuesToStorage() {
+export function saveValuesToStorage() {
     if (DEV) {
         saveValuesToLocalStorage();
     } else {
@@ -58,7 +59,7 @@ function saveValuesToStorage() {
     }
 }
 
-function loadValuesFromStorage() {
+export function loadValuesFromStorage() {
     if (DEV) {
         loadValuesFromLocalStorage();
     } else {
@@ -66,7 +67,7 @@ function loadValuesFromStorage() {
     }
 }
 
-function saveValues() {
+export function saveValues() {
     const lines = [];
     lines.push('#main');
     mainDeck.forEach(cardId => {

@@ -1,3 +1,7 @@
+import {loadValuesFromStorage, saveValues} from '../utils/storage';
+import {startCombinationSetup} from '../utils/combinations';
+import { saveValuesToStorage } from '../utils/storage';
+
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('deckFile').addEventListener('change', handleFile, false);
     document.getElementById('testHandButton').addEventListener('click', generateTestHand);
@@ -34,16 +38,16 @@ document.addEventListener('DOMContentLoaded', () => {
     loadValuesFromStorage();
 });
 
-let mainDeck = [];
-let extraDeck = [];
-let sideDeck = [];
-let currentCardId = '';
-let currentCombination = null;
+export let mainDeck = [];
+export let extraDeck = [];
+export let sideDeck = [];
+export let currentCardId = '';
+export let currentCombination = null;
 
 // Initialize card values to 0
-const cardValues = {};
+export const cardValues = {};
 
-function handleFile(event) {
+export function handleFile(event) {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
@@ -108,7 +112,7 @@ function parseYdk(content) {
     return { mainDeck, extraDeck, sideDeck };
 }
 
-function displayCards(cardIds, containerId) {
+export function displayCards(cardIds, containerId) {
     const cardContainer = document.getElementById(containerId);
     if (!cardContainer) {
         console.error(`Container with ID ${containerId} not found`);
@@ -198,7 +202,7 @@ function updateDeckTooltips(deckId) {
     }
 }
 
-function test100Hands() {
+export function test100Hands() {
     let totalHandValue = 0;
 
     for (let i = 0; i < 100; i++) {
