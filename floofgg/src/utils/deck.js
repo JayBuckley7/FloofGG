@@ -1,43 +1,6 @@
-import {loadValuesFromStorage, saveValues} from '../utils/storage';
-import {startCombinationSetup} from '../utils/combinations';
 import { saveValuesToStorage } from '../utils/storage';
 
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('deckFile').addEventListener('change', handleFile, false);
-    document.getElementById('testHandButton').addEventListener('click', generateTestHand);
-    document.getElementById('test100HandsButton').addEventListener('click', test100Hands);
-    document.getElementById('saveValuesButton').addEventListener('click', saveValues);
-    document.getElementById('addCombinationButton').addEventListener('click', startCombinationSetup);
-
-    // Get the modal elements
-    var modal = document.getElementById("cardModal");
-    var modalImg = document.getElementById("modalImage");
-    var cardDescription = document.getElementById("cardDescription");
-    var cardValue = document.getElementById("cardValue");
-
-    // Get the <span> element that closes the modal
-    var span = document.getElementsByClassName("close")[0];
-
-    // When the user clicks on <span> (x), close the modal
-    span.onclick = function() {
-        modal.style.display = "none";
-    }
-
-    // When the user clicks anywhere outside of the modal, close it
-    window.onclick = function(event) {
-        if (event.target === modal) {
-            modal.style.display = "none";
-        }
-    }
-
-    // Attach event listeners for increment and decrement buttons
-    document.getElementById('incrementValue').addEventListener('click', () => updateCardValue(currentCardId, 1));
-    document.getElementById('decrementValue').addEventListener('click', () => updateCardValue(currentCardId, -1));
-
-    // Load card values from the appropriate storage
-    loadValuesFromStorage();
-});
-
+// These arrays are kept for storage.js compatibility but are controlled by React state.
 export let mainDeck = [];
 export let extraDeck = [];
 export let sideDeck = [];
@@ -47,19 +10,20 @@ export let currentCombination = null;
 // Initialize card values to 0
 export const cardValues = {};
 
-export function handleFile(event) {
+export function handleFile(event, setMain, setExtra, setSide) {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             const content = e.target.result;
             const decks = parseYdk(content);
             mainDeck = decks.mainDeck;
             extraDeck = decks.extraDeck;
             sideDeck = decks.sideDeck;
-            displayCards(mainDeck, 'mainDeck');
-            displayCards(extraDeck, 'extraDeck');
-            displayCards(sideDeck, 'sideDeck');
+
+            if (setMain) setMain([...mainDeck]);
+            if (setExtra) setExtra([...extraDeck]);
+            if (setSide) setSide([...sideDeck]);
         };
         reader.readAsText(file);
     }
@@ -112,52 +76,23 @@ function parseYdk(content) {
     return { mainDeck, extraDeck, sideDeck };
 }
 
-export function displayCards(cardIds, containerId) {
-    const cardContainer = document.getElementById(containerId);
-    if (!cardContainer) {
-        console.error(`Container with ID ${containerId} not found`);
-        return;
-    }
-    cardContainer.innerHTML = '';
-    cardIds.forEach(cardId => {
-        const cardElement = document.createElement('div');
-        cardElement.className = 'card';
-        cardElement.dataset.cardId = cardId;
-        cardElement.innerHTML = `
-            <img src="https://images.ygoprodeck.com/images/cards/${cardId}.jpg" alt="Card ${cardId}">
-            <div class="tooltip">Card ID: ${cardId}<br>Value: ${cardValues[cardId]}</div>
-        `;
-        cardContainer.appendChild(cardElement);
 
-        // Add click event to open modal with card details
-        cardElement.addEventListener('click', () => {
-            currentCardId = cardId;
-            document.getElementById('cardModal').style.display = "block";
-            document.getElementById('modalImage').src = `https://images.ygoprodeck.com/images/cards/${cardId}.jpg`;
-            // Display card value
-            document.getElementById('cardDescription').innerText = `Card ID: ${cardId}`;
-            document.getElementById('cardValue').innerText = `Value: ${cardValues[cardId]}`;
-        });
-    });
-}
-
-export function generateTestHand() {
-    if (mainDeck.length < 5) {
-        alert("Main Deck has fewer than 5 cards!");
+export function generateTestHand(deck, setTestHand, setHandValue) {
+    if (!deck || deck.length < 5) {
+        alert('Main Deck has fewer than 5 cards!');
         return;
     }
 
-    let deckCopy = [...mainDeck];
-    const testHand = [];
-    
+    const deckCopy = [...deck];
+    const hand = [];
+
     for (let i = 0; i < 5; i++) {
         const randomIndex = Math.floor(Math.random() * deckCopy.length);
-        testHand.push(deckCopy[randomIndex]);
-        deckCopy.splice(randomIndex, 1);
+        hand.push(deckCopy.splice(randomIndex, 1)[0]);
     }
 
-    displayCards(testHand, 'testHand');
-    calculateHandValue(testHand);
+    if (setTestHand) setTestHand(hand);
+    if (setHandValue) setHandValue(calculateHandValue(hand));
 }
 
 function calculateHandValue(hand) {
@@ -165,61 +100,42 @@ function calculateHandValue(hand) {
     hand.forEach(cardId => {
         totalValue += cardValues[cardId] || 0;
     });
-    document.getElementById('handValue').innerText = `Hand Value: ${totalValue}`;
+    return totalValue;
 }
 
 export function updateCardValue(cardId, increment) {
+    if (!cardValues[cardId]) {
+        cardValues[cardId] = 0;
+    }
     cardValues[cardId] += increment;
-    document.getElementById('cardValue').innerText = `Value: ${cardValues[cardId]}`;
 
-    // Update the tooltip content for all cards with the updated value
-    const tooltips = document.querySelectorAll('.tooltip');
-    tooltips.forEach(tooltip => {
-        if (tooltip.innerText.includes(`Card ID: ${cardId}`)) {
-            tooltip.innerHTML = `Card ID: ${cardId}<br>Value: ${cardValues[cardId]}`;
-        }
-    });
-
-    // Update tooltips immediately in the main deck, extra deck, and side deck
-    updateDeckTooltips('mainDeck');
-    updateDeckTooltips('extraDeck');
-    updateDeckTooltips('sideDeck');
-
-    // Save updated values to the appropriate storage
+    // Persist the updated values
     saveValuesToStorage();
 }
 
-function updateDeckTooltips(deckId) {
-    const deck = document.getElementById(deckId);
-    if (deck) {
-        const tooltips = deck.querySelectorAll('.tooltip');
-        tooltips.forEach(tooltip => {
-            const cardId = tooltip.innerText.split(' ')[2]; // Extract card ID
-            if (cardValues[cardId] !== undefined) {
-                tooltip.innerHTML = `Card ID: ${cardId}<br>Value: ${cardValues[cardId]}`;
-            }
-        });
-    }
-}
 
-export function test100Hands() {
+export function test100Hands(deck, setAverageHandValue) {
+    if (!deck || deck.length < 5) {
+        alert('Main Deck has fewer than 5 cards!');
+        return;
+    }
+
     let totalHandValue = 0;
 
     for (let i = 0; i < 100; i++) {
-        let deckCopy = [...mainDeck];
+        let deckCopy = [...deck];
         const testHand = [];
-        
+
         for (let j = 0; j < 5; j++) {
             const randomIndex = Math.floor(Math.random() * deckCopy.length);
-            testHand.push(deckCopy[randomIndex]);
-            deckCopy.splice(randomIndex, 1);
+            testHand.push(deckCopy.splice(randomIndex, 1)[0]);
         }
 
         totalHandValue += calculateHandValueForTest(testHand);
     }
 
     const averageHandValue = totalHandValue / 100;
-    document.getElementById('averageHandValue').innerText = `Average Hand Value: ${averageHandValue.toFixed(2)}`;
+    if (setAverageHandValue) setAverageHandValue(averageHandValue);
 }
 
 function calculateHandValueForTest(hand) {
