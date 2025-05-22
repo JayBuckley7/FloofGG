@@ -1,6 +1,8 @@
 // src/pages/DeckViewer.js
 import React, { useState, useEffect } from 'react';
-import {handleFile, generateTestHand, test100Hands, cardValues} from '../../utils/deck';
+import { handleFile, generateTestHand, test100Hands } from '../../utils/deck';
+import deckState from '../../utils/deckState';
+const { cardValues } = deckState;
 import {loadValuesFromStorage, saveValues} from '../../utils/storage';
 
 const DeckViewer = () => {

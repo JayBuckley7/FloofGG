@@ -1,6 +1,7 @@
-import {loadValuesFromStorage, saveValues} from '../utils/storage';
-import {startCombinationSetup} from '../utils/combinations';
+import { loadValuesFromStorage, saveValues } from '../utils/storage';
+import { startCombinationSetup } from '../utils/combinations';
 import { saveValuesToStorage } from '../utils/storage';
+import deckState from './deckState';
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('deckFile').addEventListener('change', handleFile, false);
@@ -31,21 +32,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Attach event listeners for increment and decrement buttons
-    document.getElementById('incrementValue').addEventListener('click', () => updateCardValue(currentCardId, 1));
-    document.getElementById('decrementValue').addEventListener('click', () => updateCardValue(currentCardId, -1));
+    document.getElementById('incrementValue').addEventListener('click', () => updateCardValue(deckState.currentCardId, 1));
+    document.getElementById('decrementValue').addEventListener('click', () => updateCardValue(deckState.currentCardId, -1));
 
     // Load card values from the appropriate storage
     loadValuesFromStorage();
 });
 
-export let mainDeck = [];
-export let extraDeck = [];
-export let sideDeck = [];
-export let currentCardId = '';
-export let currentCombination = null;
-
-// Initialize card values to 0
-export const cardValues = {};
+// Reference to shared state
+const cardValues = deckState.cardValues;
 
 export function handleFile(event) {
     const file = event.target.files[0];
@@ -54,12 +49,12 @@ export function handleFile(event) {
         reader.onload = function(e) {
             const content = e.target.result;
             const decks = parseYdk(content);
-            mainDeck = decks.mainDeck;
-            extraDeck = decks.extraDeck;
-            sideDeck = decks.sideDeck;
-            displayCards(mainDeck, 'mainDeck');
-            displayCards(extraDeck, 'extraDeck');
-            displayCards(sideDeck, 'sideDeck');
+            deckState.mainDeck = decks.mainDeck;
+            deckState.extraDeck = decks.extraDeck;
+            deckState.sideDeck = decks.sideDeck;
+            displayCards(deckState.mainDeck, 'mainDeck');
+            displayCards(deckState.extraDeck, 'extraDeck');
+            displayCards(deckState.sideDeck, 'sideDeck');
         };
         reader.readAsText(file);
     }
@@ -131,7 +126,7 @@ export function displayCards(cardIds, containerId) {
 
         // Add click event to open modal with card details
         cardElement.addEventListener('click', () => {
-            currentCardId = cardId;
+            deckState.currentCardId = cardId;
             document.getElementById('cardModal').style.display = "block";
             document.getElementById('modalImage').src = `https://images.ygoprodeck.com/images/cards/${cardId}.jpg`;
             // Display card value
@@ -142,12 +137,12 @@ export function displayCards(cardIds, containerId) {
 }
 
 export function generateTestHand() {
-    if (mainDeck.length < 5) {
+    if (deckState.mainDeck.length < 5) {
         alert("Main Deck has fewer than 5 cards!");
         return;
     }
 
-    let deckCopy = [...mainDeck];
+    let deckCopy = [...deckState.mainDeck];
     const testHand = [];
     
     for (let i = 0; i < 5; i++) {
@@ -206,7 +201,7 @@ export function test100Hands() {
     let totalHandValue = 0;
 
     for (let i = 0; i < 100; i++) {
-        let deckCopy = [...mainDeck];
+        let deckCopy = [...deckState.mainDeck];
         const testHand = [];
         
         for (let j = 0; j < 5; j++) {

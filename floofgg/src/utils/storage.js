@@ -1,4 +1,5 @@
-import { cardValues, mainDeck, extraDeck, sideDeck } from './deck';
+import deckState from './deckState';
+const { cardValues, mainDeck, extraDeck, sideDeck } = deckState;
 const DEV = true; // Set to true for local development
 
 function setCookie(name, value, days) {

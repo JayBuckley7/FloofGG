@@ -1,4 +1,4 @@
-import { currentCardId } from '../utils/deck.js';
+import deckState from './deckState';
 
 let combinationMode = false;
 let selectedCombinationCard = null;
@@ -9,12 +9,12 @@ export function startCombinationSetup() {
     document.getElementById('mainDeck').classList.add('combination-mode');
     combinationMode = true;
 
-    selectedCombinationCard = currentCardId;
+    selectedCombinationCard = deckState.currentCardId;
     
     // Add UI elements for combination mode
     const combinationUI = `
         <div id="combinationCard" class="card">
-            <img src="https://images.ygoprodeck.com/images/cards/${currentCardId}.jpg" alt="Card ${currentCardId}">
+            <img src="https://images.ygoprodeck.com/images/cards/${deckState.currentCardId}.jpg" alt="Card ${deckState.currentCardId}">
         </div>
         <button id="combinationWithButton">With</button>
         <button id="combinationWithoutButton">Without</button>
