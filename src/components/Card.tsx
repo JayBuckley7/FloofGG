@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
@@ -6,27 +6,20 @@ import { toast } from "sonner";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { Id } from "../../convex/_generated/dataModel";
+import { CardModal } from "./CardModal";
+
 interface CardProps {
   card: Doc<"cards">;
+  boardId: Id<"boards">;
   isDragging?: boolean;
   viewMode?: "use" | "design" | "view";
 }
 
-export function Card({ card, isDragging = false, viewMode = "use" }: CardProps) {
-  const updateCard = useMutation(api.cards.update);
+export function Card({ card, boardId, isDragging = false, viewMode = "use" }: CardProps) {
   const deleteCard = useMutation(api.cards.remove);
   
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(card.title);
-  const [editDescription, setEditDescription] = useState(card.description || "");
-
-  useEffect(() => {
-    if (viewMode !== "use") {
-      setIsEditing(false);
-      setEditTitle(card.title);
-      setEditDescription(card.description || "");
-    }
-  }, [viewMode, card.title, card.description]);
+  const [showModal, setShowModal] = useState(false);
 
   const {
     attributes,
@@ -41,7 +34,7 @@ export function Card({ card, isDragging = false, viewMode = "use" }: CardProps) 
       type: "card",
       card,
     },
-    disabled: isEditing || viewMode !== "use",
+    disabled: viewMode !== "use",
   });
 
   const style = {
@@ -49,22 +42,6 @@ export function Card({ card, isDragging = false, viewMode = "use" }: CardProps) 
     transition,
   };
 
-  const handleUpdateCard = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editTitle.trim()) return;
-
-    try {
-      await updateCard({
-        cardId: card._id,
-        title: editTitle.trim(),
-        description: editDescription.trim() || undefined,
-      });
-      setIsEditing(false);
-      toast.success("Card updated successfully!");
-    } catch (error) {
-      toast.error("Failed to update card");
-    }
-  };
 
   const handleDeleteCard = async () => {
     if (!confirm(`Are you sure you want to delete "${card.title}"?`)) {
@@ -79,48 +56,6 @@ export function Card({ card, isDragging = false, viewMode = "use" }: CardProps) 
     }
   };
 
-  if (isEditing) {
-    return (
-      <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
-        <form onSubmit={handleUpdateCard}>
-          <input
-            type="text"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            className="w-full px-2 py-1 text-sm font-medium bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-            placeholder="Card title"
-            autoFocus
-          />
-          <textarea
-            value={editDescription}
-            onChange={(e) => setEditDescription(e.target.value)}
-            className="w-full px-2 py-1 text-sm bg-white border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 mb-2"
-            placeholder="Card description (optional)"
-            rows={2}
-          />
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-            >
-              Save
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEditTitle(card.title);
-                setEditDescription(card.description || "");
-                setIsEditing(false);
-              }}
-              className="px-3 py-1 text-xs bg-gray-300 text-gray-700 rounded hover:bg-gray-400 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
-    );
-  }
 
   return (
     <div
@@ -130,7 +65,7 @@ export function Card({ card, isDragging = false, viewMode = "use" }: CardProps) 
       className={`bg-white rounded-lg p-3 shadow-sm border border-gray-200 transition-shadow group ${
         viewMode === "use" ? "cursor-pointer hover:shadow-md" : "cursor-default"
       } ${isSortableDragging || isDragging ? "opacity-50" : ""}`}
-      onClick={viewMode === "use" ? () => setIsEditing(true) : undefined}
+      onClick={viewMode === "use" ? () => setShowModal(true) : undefined}
     >
       <div className="flex justify-between items-start">
         {viewMode === "use" && (
@@ -166,5 +101,9 @@ export function Card({ card, isDragging = false, viewMode = "use" }: CardProps) 
         )}
       </div>
     </div>
+      {showModal && (
+        <CardModal card={card} boardId={boardId} onClose={() => setShowModal(false)} />
+      )}
+    </>
   );
 }
