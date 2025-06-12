@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Floofs - Floof.gg</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <header>
+        <h1>Top Floofs of All Time</h1>
+        <p>Meet the cream of the floofy crop!</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="top-floofs.html">Top Floofs</a></li>
+            <li><a href="#">Floof News</a></li>
+            <li><a href="deck-edit.html">Join the Floofiness</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section class="top-floofs">
+            <h2>#1: Lucky Foxy</h2>
+            <article class="floof-card">
+                <img src="floof-pfp1.png" alt="Lucky Foxy under a Clover">
+                <h3>Lucky Foxy</h3>
+                <p>Floof Rating: 95%</p>
+                <p>Known for: Bringing good luck to those who find him.</p>
+				<div class="upvote-container">
+					<a href="#" class="upvote-button" data-floof-id="floof-pfp1">
+						<i class="fas fa-arrow-up"></i> Upvote
+					</a>
+					<span class="vote-count">0</span>
+				</div>
+
+            </article>
+
+            <h2>#2: Fiery Trio</h2>
+            <article class="floof-card">
+                <img src="floof-pfp2.jpg" alt="Three Fiery Foxes">
+                <h3>Fiery Trio</h3>
+                <p>Floof Rating: 93%</p>
+                <p>Known for: Heating things up with their sizzling style.</p>
+				<div class="upvote-container">
+					<a href="#" class="upvote-button" data-floof-id="floof-pfp2>
+						<i class="fas fa-arrow-up"></i> Upvote
+					</a>
+					<span class="vote-count">0</span>
+				</div>
+
+            </article>
+
+            <h2>#3: Cyberfox</h2>
+            <article class="floof-card">
+                <img src="floof-pfp3.jpg" alt="Futuristic Fox">
+                <h3>Cyberfox</h3>
+                <p>Floof Rating: 92%</p>
+                <p>Known for: Navigating the digital realm with ease.</p>
+				<div class="upvote-container">
+					<a href="#" class="upvote-button" data-floof-id="floof-pfp3>
+						<i class="fas fa-arrow-up"></i> Upvote
+					</a>
+					<span class="vote-count">0</span>
+				</div>
+
+            </article>
+
+            <h2>#4: Angel Paws</h2>
+            <article class="floof-card">
+                <img src="floof-pfp4.jpg" alt="Flying Fox Angel">
+                <h3>Angel Paws</h3>
+                <p>Floof Rating: 90%</p>
+                <p>Known for: Watching over the floof kingdom from the skies.</p>
+				<div class="upvote-container">
+					<a href="#" class="upvote-button" data-floof-id="floof-pfp4>
+						<i class="fas fa-arrow-up"></i> Upvote
+					</a>
+					<span class="vote-count">0</span>
+				</div>
+
+            </article>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Floof.gg. All rights reserved. Keep your floofiness levels high!</p>
+    </footer>
+<script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.2/firebase-firestore.js"></script>
+
+<script>
+    // Firebase configuration
+	const firebaseConfig = {
+	  apiKey: "AIzaSyDn5LJNmgczuhUtptG3-iAVklJNH6_DBsU",
+	  authDomain: "floofgg.firebaseapp.com",
+	  projectId: "floofgg",
+	  storageBucket: "floofgg.appspot.com",
+	  messagingSenderId: "49477009498",
+	  appId: "1:49477009498:web:696aa074d658f31f91d863",
+	  measurementId: "G-26839YZNPK"
+	};
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+
+    // Initialize Firestore
+    const db = firebase.firestore(app);
+	
+	document.addEventListener('DOMContentLoaded', function() {
+    const upvoteButtons = document.querySelectorAll('.upvote-button');
+
+    upvoteButtons.forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault(); // prevents the default action of the anchor
+
+            // Get the floof ID from the data attribute
+            const floofId = button.getAttribute('data-floof-id');
+            
+            // Reference to the Firestore document
+            const docRef = db.collection('votes').doc(floofId);
+
+            // Update the vote count in Firestore
+            docRef.update({
+                voteCount: firebase.firestore.FieldValue.increment(1)
+            })
+            .then(() => {
+                // Fetch and display the updated vote count
+                docRef.get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const voteCountElement = button.nextElementSibling;
+                        const currentCount = doc.data().voteCount;
+                        voteCountElement.textContent = currentCount;
+                    } else {
+                        console.log("Document not found");
+                    }
+                })
+                .catch(error => {
+                    console.log("Error fetching document:", error);
+                });
+            })
+            .catch(error => {
+                console.log("Error updating document:", error);
+            });
+        });
+    });
+});
+
+</script>
+
+
+</body>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link rel="stylesheet" href="styles.css">
+
+
+</html>

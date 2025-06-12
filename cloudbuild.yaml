@@ -1,0 +1,46 @@
+steps:
+gcloud artifacts repositories list --project=floofgg --location=us-central1
+
+  # 2. Push image with commit SHA tag
+  - name: "gcr.io/cloud-builders/docker"
+    id: "Push to Artifact Registry"
+    waitFor: ["Build Docker Image"]
+    args:
+      - "push"
+      - "us-central1-docker.pkg.dev/$PROJECT_ID/kanban-board/${_SERVICE_NAME}:${_COMMIT_SHA}"
+
+  # 3. Push latest tag
+  - name: "gcr.io/cloud-builders/docker"
+    id: "Push latest tag"
+    waitFor: ["Build Docker Image"]
+    args:
+      - "push"
+      - "us-central1-docker.pkg.dev/$PROJECT_ID/progressive-reader/${_SERVICE_NAME}:latest"
+
+  # 4. Deploy to Cloud Run
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "Deploy to Cloud Run"
+    waitFor: ["Push latest tag"]
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+          gcloud run deploy ${_SERVICE_NAME} \
+            --image us-central1-docker.pkg.dev/$PROJECT_ID/kanban-board/${_SERVICE_NAME}:${_COMMIT_SHA} \
+            --service-account progressive-reader-bvt-sa@$PROJECT_ID.iam.gserviceaccount.com \
+            --set-secrets /secrets/env.json=app-config:latest \
+            --region us-central1 \
+            --platform managed \
+            --allow-unauthenticated \
+            --set-env-vars APP_ENV=${_ENVIRONMENT} \
+            --vpc-connector floof-connector \
+            --vpc-egress private-ranges-only
+
+substitutions:
+  _VITE_CONVEX_URL: 'https://glad-toad-245.convex.cloud'
+  _SERVICE_NAME: 'kanban-board'
+
+images:
+  - "us-central1-docker.pkg.dev/$PROJECT_ID/kanban-board/${_SERVICE_NAME}:${_COMMIT_SHA}"
+
+timeout: 1200s

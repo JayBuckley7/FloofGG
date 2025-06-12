@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yu-Gi-Oh! Deck Viewer - Floof.gg</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="deck-viewer">
+
+    <header class="deck-viewer">
+        <h1>Yu-Gi-Oh! Deck Viewer</h1>
+        <p>Manage and test your Yu-Gi-Oh! decks.</p>
+    </header>
+
+    <nav class="deck-viewer">
+        <ul>
+            <li><a href="index.html">Home</a></li>
+            <li><a href="top-floofs.html">Top Floofs</a></li>
+            <li><a href="#">Floof News</a></li>
+            <li><a href="deck-edit.html">Join the Floofiness</a></li>
+        </ul>
+    </nav>
+
+    <main class="deck-viewer">
+        <section class="deck-viewer">
+            <h2>Yu-Gi-Oh! Deck Viewer</h2>
+            <input type="file" id="deckFile" accept=".ydk">
+            <div id="mainDeckContainer">
+                <h2>Main Deck</h2>
+                <div id="mainDeck" class="deck">
+                    <!-- Combination setup elements -->
+                </div>
+                <div id="combinationSetup"></div>
+            </div>
+            <div id="extraDeckContainer">
+                <h2>Extra Deck</h2>
+                <div id="extraDeck" class="deck"></div>
+            </div>
+            <div id="sideDeckContainer">
+                <h2>Side Deck</h2>
+                <div id="sideDeck" class="deck"></div>
+            </div>
+            <button id="testHandButton">Test Hand</button>
+            <button id="test100HandsButton">Test 100 Hands</button>
+            <button id="saveValuesButton">Save Values</button>
+            <div id="testHandContainer">
+                <h2>Test Hand</h2>
+                <div id="testHand" class="deck"></div>
+                <p id="handValue">Hand Value: 0</p>
+            </div>
+            <div id="averageHandValueContainer">
+                <h2>Average Hand Value</h2>
+                <p id="averageHandValue">Average Hand Value: 0</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal -->
+    <div id="cardModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <img id="modalImage" src="" alt="Card Image">
+            <p id="cardDescription"></p>
+            <p id="cardValue">Value: 0</p>
+            <button id="incrementValue">+</button>
+            <button id="decrementValue">-</button>
+            <button id="addCombinationButton">Add Combination</button>
+        </div>
+    </div>
+
+    <script src="storage.js"></script>
+    <script src="deck.js"></script>
+    <script src="combinations.js"></script>
+</body>
+</html>
