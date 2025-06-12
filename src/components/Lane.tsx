@@ -202,7 +202,7 @@ export function Lane({ lane, viewMode, publicView = false }: LaneProps) {
       <SortableContext items={sortedCards.map(c => c._id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-3 flex-1 flex flex-col">
           {sortedCards.map((card) => (
-            <Card key={card._id} card={card} viewMode={viewMode} />
+            <Card key={card._id} card={card} boardId={lane.boardId} viewMode={viewMode} />
           ))}
         </div>
       </SortableContext>
