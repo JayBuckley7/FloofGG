@@ -132,6 +132,69 @@ export const remove = mutation({
   },
 });
 
+export const duplicate = mutation({
+  args: {
+    boardId: v.id("boards"),
+    withCards: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const board = await ctx.db.get(args.boardId);
+    if (!board || board.userId !== userId) {
+      throw new Error("Board not found or access denied");
+    }
+
+    const newBoardId = await ctx.db.insert("boards", {
+      name: `${board.name} Copy`,
+      description: board.description,
+      background: board.background,
+      userId,
+      isPublic: board.isPublic,
+    });
+
+    const lanes = await ctx.db
+      .query("lanes")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .order("asc")
+      .collect();
+
+    const laneIdMap = new Map();
+    for (const lane of lanes) {
+      const newLaneId = await ctx.db.insert("lanes", {
+        boardId: newBoardId,
+        name: lane.name,
+        position: lane.position,
+        color: lane.color,
+      });
+      laneIdMap.set(lane._id, newLaneId);
+    }
+
+    if (args.withCards) {
+      for (const lane of lanes) {
+        const cards = await ctx.db
+          .query("cards")
+          .withIndex("by_lane", (q) => q.eq("laneId", lane._id))
+          .collect();
+
+        for (const card of cards) {
+          await ctx.db.insert("cards", {
+            laneId: laneIdMap.get(lane._id),
+            title: card.title,
+            description: card.description,
+            position: card.position,
+          });
+        }
+      }
+    }
+
+    return newBoardId;
+  },
+});
+
 export const getPublic = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
