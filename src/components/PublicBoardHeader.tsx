@@ -3,9 +3,10 @@ import { Share2, Plus, Layout } from "lucide-react";
 
 interface PublicBoardHeaderProps {
   boardTitle?: string;
+  onUseTemplate?: () => void;
 }
 
-export default function PublicBoardHeader({ boardTitle }: PublicBoardHeaderProps) {
+export default function PublicBoardHeader({ boardTitle, onUseTemplate }: PublicBoardHeaderProps) {
   return (
     <header className="bg-white/95 has-blur desktop-blur border-b border-gray-200 shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -39,6 +40,16 @@ export default function PublicBoardHeader({ boardTitle }: PublicBoardHeaderProps
             <div className="hidden sm:block text-sm text-gray-600">
               Like what you see?
             </div>
+            {onUseTemplate && (
+              <button
+                onClick={onUseTemplate}
+                className="inline-flex items-center px-3 sm:px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 whitespace-nowrap"
+              >
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden xs:inline">Use as Template</span>
+                <span className="inline xs:hidden">Template</span>
+              </button>
+            )}
             <Link
               to="/kanban"
               className="inline-flex items-center px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white text-xs sm:text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md active:scale-95 whitespace-nowrap"
