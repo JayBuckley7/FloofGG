@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import FloofCard from "../components/floof/FloofCard";
 import ShopModal from "../components/shop/ShopModal";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+}
+
 const featuredFloofs = [
   {
     id: 1,
@@ -78,6 +83,34 @@ export default function Home() {
   const [speedUpTime2Unlocked, setSpeedUpTime2Unlocked] = useState(false);
   const [showEvenCdPage, setShowEvenCdPage] = useState(false);
   const [basePointsPerSecond, setBasePointsPerSecond] = useState(1);
+  const [showPwaPrompt, setShowPwaPrompt] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+
+  useEffect(() => {
+    const declined = document.cookie.split('; ').find((c) => c.startsWith('pwa-decline='));
+    if (declined) return;
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowPwaPrompt(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const installPwa = () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.finally(() => {
+      setShowPwaPrompt(false);
+      setDeferredPrompt(null);
+    });
+  };
+
+  const declinePwa = () => {
+    document.cookie = 'pwa-decline=true; max-age=' + 60 * 60 * 24 * 365 + '; path=/';
+    setShowPwaPrompt(false);
+  };
 
   const gameinit = () => {
     setGameInitialized(true);
@@ -651,6 +684,16 @@ export default function Home() {
                 Continue
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showPwaPrompt && (
+        <div className="fixed bottom-4 left-4 right-4 bg-white border rounded-lg p-4 shadow-lg flex justify-between items-center z-50">
+          <span>Add FloofGG Clicker to your home screen?</span>
+          <div className="flex gap-2">
+            <button onClick={installPwa} className="bg-blue-500 text-white px-3 py-1 rounded">Yes</button>
+            <button onClick={declinePwa} className="bg-gray-300 px-3 py-1 rounded">No</button>
           </div>
         </div>
       )}
