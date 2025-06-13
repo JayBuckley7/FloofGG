@@ -1,5 +1,13 @@
 steps:
-gcloud artifacts repositories list --project=floofgg --location=us-central1
+  # 1. List artifact repositories
+  - name: "gcr.io/cloud-builders/gcloud"
+    id: "List Artifact Repositories"
+    args:
+      - "artifacts"
+      - "repositories"
+      - "list"
+      - "--project=floofgg"
+      - "--location=us-central1"
 
   # 2. Push image with commit SHA tag
   - name: "gcr.io/cloud-builders/docker"
