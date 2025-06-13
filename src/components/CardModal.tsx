@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Doc, Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
+import { Pencil } from "lucide-react";
 
 interface CardModalProps {
   card: Doc<"cards">;
@@ -22,6 +23,7 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description || "");
   const [commentText, setCommentText] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   const handleSave = async () => {
     await updateCard({
@@ -29,7 +31,14 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
       title: title.trim() || card.title,
       description: description.trim() || undefined,
     });
+    setIsEditing(false);
     toast.success("Card updated");
+  };
+
+  const handleCancel = () => {
+    setTitle(card.title);
+    setDescription(card.description || "");
+    setIsEditing(false);
   };
 
   const handleAddComment = async (e: React.FormEvent) => {
@@ -57,23 +66,56 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
         </div>
         <div className="space-y-4">
           <div>
-            <input
-              className="w-full border rounded px-2 py-1 mb-2"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-            />
-            <textarea
-              className="w-full border rounded px-2 py-1"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-            <button
-              onClick={handleSave}
-              className="mt-2 px-3 py-1 text-sm bg-blue-600 text-white rounded"
-            >
-              Save
-            </button>
+            {!isEditing ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-medium text-gray-900">{card.title}</h3>
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="text-gray-500 hover:text-gray-700"
+                    title="Edit title and description"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                </div>
+                {card.description && (
+                  <p className="text-gray-700 whitespace-pre-line">{card.description}</p>
+                )}
+                {!card.description && (
+                  <p className="text-gray-400 italic">No description</p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  className="w-full border rounded px-2 py-1 font-medium"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Card title"
+                />
+                <textarea
+                  className="w-full border rounded px-2 py-1"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  placeholder="Add a description..."
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSave}
+                    className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="px-3 py-1 text-sm bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {labels && (

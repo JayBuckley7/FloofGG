@@ -77,6 +77,7 @@ export default function Home() {
   const [giftedSubsUnlocked, setGiftedSubsUnlocked] = useState(false);
   const [speedUpTime2Unlocked, setSpeedUpTime2Unlocked] = useState(false);
   const [showEvenCdPage, setShowEvenCdPage] = useState(false);
+  const [basePointsPerSecond, setBasePointsPerSecond] = useState(1);
 
   const gameinit = () => {
     setGameInitialized(true);
@@ -188,12 +189,19 @@ export default function Home() {
         setPurchasedItems(prev => [...prev, item.id]);
       }
       
-      // Special handling for Hype Train 1 - start train game
+      // Special handling for Hype Train 1 - start train game and increase base points per second by 5
       if (item.id === "hypetrain1") {
         startTrainGame();
+        setBasePointsPerSecond(prev => prev + 5);
       }
       
-      // Special handling for Elfy Sub - increase Foxy's floofiness by 1%
+      // Special handling for Hype Train 2 - start train game 2 and increase base points per second by 10
+      if (item.id === "hypetrain2") {
+        startTrainGame2();
+        setBasePointsPerSecond(prev => prev + 10);
+      }
+      
+      // Special handling for Elfy Sub - increase Foxy's floofiness by 1% and base points per second by 5
       if (item.id === "elfysub") {
         setFoxyFloofiness(prev => {
           const newFloofiness = Math.min(prev + 1, 100);
@@ -204,6 +212,9 @@ export default function Home() {
           }
           return newFloofiness;
         });
+        
+        // Increase base points per second by 5
+        setBasePointsPerSecond(prev => prev + 5);
       }
       
       // Special handling for Anti Hand Trap - increase Foxy's floofiness by 2%
@@ -264,6 +275,9 @@ export default function Home() {
       setHypeTrainUnlocked(true);
       setPurchasedItems(prev => prev.filter(id => id !== "hypetrain1"));
       
+      // Increase base points per second by 1
+      setBasePointsPerSecond(prev => prev + 1);
+      
       // Increase Elfy's floofiness by 5%
       setElfyFloofiness(prev => {
         const newFloofiness = Math.min(prev + 5, 100);
@@ -275,7 +289,7 @@ export default function Home() {
         return newFloofiness;
       });
       
-              console.log("Elfy ate your cheese! Hype Train 1 is now available in the store! Cheese is back in the shop! Elfy got 5% fluffier!");
+              console.log("Elfy ate your cheese! Hype Train 1 is now available in the store! Cheese is back in the shop! Elfy got 5% fluffier! Points per second increased by 1!");
     }
   };
 
@@ -327,7 +341,7 @@ export default function Home() {
   };
 
   const handleTrainClick = () => {
-    setPoints(prev => prev + 150);
+    setPoints(prev => prev + 200);
     spawnTrain(); // Spawn new train in different corner
   };
 
@@ -413,13 +427,13 @@ export default function Home() {
       }
       
       interval = setInterval(() => {
-        setPoints(prev => prev + 1);
+        setPoints(prev => prev + basePointsPerSecond);
       }, intervalTime);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [gameInitialized, purchasedItems]);
+  }, [gameInitialized, purchasedItems, basePointsPerSecond]);
 
   // Momentum decay system
   useEffect(() => {
