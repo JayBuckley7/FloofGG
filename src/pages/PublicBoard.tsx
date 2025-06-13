@@ -1,14 +1,19 @@
 import { useParams } from "react-router-dom";
-import { useQuery } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Board } from "../components/Board";
 import PublicBoardHeader from "../components/PublicBoardHeader";
 import { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
+import { toast } from "sonner";
 
 export default function PublicBoard() {
   const { boardId } = useParams();
   const board = useQuery(api.boards.getPublic, { boardId: boardId as Id<"boards"> });
+  const cloneBoard = useMutation(api.boards.clone);
+  const { isAuthenticated } = useConvexAuth();
+  const navigate = useNavigate();
   
   // Update document title for public boards
   useEffect(() => {
@@ -56,9 +61,24 @@ export default function PublicBoard() {
     );
   }
 
+  const handleUseTemplate = async () => {
+    if (!boardId) return;
+    if (!isAuthenticated) {
+      navigate("/kanban");
+      return;
+    }
+    try {
+      await cloneBoard({ boardId: boardId as Id<"boards"> });
+      toast.success("Board copied to your account");
+      navigate("/kanban");
+    } catch (err) {
+      toast.error("Failed to copy board");
+    }
+  };
+
   return (
     <>
-      <PublicBoardHeader boardTitle={board.name} />
+      <PublicBoardHeader boardTitle={board.name} onUseTemplate={handleUseTemplate} />
       <Board boardId={boardId as Id<"boards">} publicView />
     </>
   );

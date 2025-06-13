@@ -12,6 +12,7 @@ export function BoardList({ onSelectBoard }: BoardListProps) {
   const boards = useQuery(api.boards.list) || [];
   const createBoard = useMutation(api.boards.create);
   const deleteBoard = useMutation(api.boards.remove);
+  const duplicateBoard = useMutation(api.boards.duplicate);
   
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [newBoardName, setNewBoardName] = useState("");
@@ -52,6 +53,18 @@ export function BoardList({ onSelectBoard }: BoardListProps) {
       toast.success("Board deleted successfully!");
     } catch (error) {
       toast.error("Failed to delete board");
+    }
+  };
+
+  const handleDuplicateBoard = async (boardId: Id<"boards">, boardName: string) => {
+    const withCards = confirm(
+      `Do you want to also duplicate the cards in "${boardName}"? Click 'Ok' to include cards or 'Cancel' for an empty copy.`
+    );
+    try {
+      await duplicateBoard({ boardId, withCards });
+      toast.success("Board duplicated successfully!");
+    } catch (error) {
+      toast.error("Failed to duplicate board");
     }
   };
 
@@ -167,16 +180,28 @@ export function BoardList({ onSelectBoard }: BoardListProps) {
                       </p>
                     )}
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteBoard(board._id, board.name);
-                    }}
-                    className="ml-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
-                    title="Delete board"
-                  >
-                    🗑️
-                  </button>
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicateBoard(board._id, board.name);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-all duration-200"
+                      title="Duplicate board"
+                    >
+                      ⧉
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteBoard(board._id, board.name);
+                      }}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
+                      title="Delete board"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
