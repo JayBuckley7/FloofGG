@@ -48,7 +48,7 @@ steps:
             --vpc-egress private-ranges-only
 
 substitutions:
-  _VITE_CONVEX_URL: 'https://glad-toad-245.convex.cloud'
+  _VITE_CONVEX_URL: ''
   _SERVICE_NAME: 'kanban-board'
   _COMMIT_SHA: '${COMMIT_SHA}'
   _ENVIRONMENT: 'production'

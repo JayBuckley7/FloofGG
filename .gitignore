@@ -30,5 +30,6 @@ userinput.py
 # Environment files
 env.json
 
-# Convex generated files
+# Convex generated files *
 convex/_generated
+ 

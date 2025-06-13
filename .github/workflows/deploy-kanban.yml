@@ -1,7 +1,7 @@
 #  ┌─────────────────────────────────────────────────────────┐
-#  │  Deploy Kanban Board to Cloud Run via Cloud Build     │
-#  │  • main         → auto-build + deploy to production    │
-#  │  • other branch → manual "Run workflow" → dev deploy   │
+#  │  Deploy Kanban Board to Cloud Run via Cloud Build      │
+#  │  • main         → auto-build + deploy to production     │
+#  │  • other branch → manual "Run workflow" → dev deploy    │
 #  └─────────────────────────────────────────────────────────┘
 
 name: Deploy to Cloud Run via Cloud Build
@@ -53,24 +53,29 @@ jobs:
         id: env
         run: |
           if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            echo "SERVICE_NAME=kanban-board"  >> $GITHUB_OUTPUT
-            echo "ENVIRONMENT=production"     >> $GITHUB_OUTPUT
+            echo "SERVICE_NAME=kanban-board"      >> $GITHUB_OUTPUT
+            echo "ENVIRONMENT=production"         >> $GITHUB_OUTPUT
           else
-            echo "SERVICE_NAME=kanban-board-dev" >> $GITHUB_OUTPUT
-            echo "ENVIRONMENT=development"   >> $GITHUB_OUTPUT
+            echo "SERVICE_NAME=kanban-board-dev"  >> $GITHUB_OUTPUT
+            echo "ENVIRONMENT=development"        >> $GITHUB_OUTPUT
           fi
 
       - name: Load secret env.json
         id: secrets
         run: |
           gcloud secrets versions access latest --secret app-config > env.json
+          # Export *all* keys (harmless for this job; only VITE_CONVEX_URL is later used)
           cat env.json | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
 
       - name: Submit build to Cloud Build
         run: |
+          # Unset any accidental overrides
           unset SERVICE_URL || true
           gcloud builds submit \
             --project=floofgg \
             --config=cloudbuild.yaml \
-            --substitutions=_COMMIT_SHA=${{ github.sha }},_SERVICE_NAME=${{ steps.env.outputs.SERVICE_NAME }},_ENVIRONMENT=${{ steps.env.outputs.ENVIRONMENT }},_VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY,_VITE_GDRIVE_CLIENT_ID=$VITE_GDRIVE_CLIENT_ID,_VITE_GAPI_KEY=$VITE_GAPI_KEY,_CLERK_SECRET_KEY=$CLERK_SECRET_KEY \
-            --gcs-log-dir=gs://floofgg_cloudbuild/logs \
+            --substitutions=_COMMIT_SHA=${{ github.sha }},\
+                           _SERVICE_NAME=${{ steps.env.outputs.SERVICE_NAME }},\
+                           _ENVIRONMENT=${{ steps.env.outputs.ENVIRONMENT }},\
+                           _VITE_CONVEX_URL=$VITE_CONVEX_URL \
+            --gcs-log-dir=gs://floofgg_cloudbuild/logs
