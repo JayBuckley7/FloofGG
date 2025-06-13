@@ -184,19 +184,56 @@ export const move = mutation({
       throw new Error("Access denied");
     }
 
-    // Get all cards in the target lane to determine the correct position
-    const targetLaneCards = await ctx.db
+    // Reindex cards to keep sequential positions
+    const oldLaneCards = await ctx.db
       .query("cards")
-      .withIndex("by_lane", (q) => q.eq("laneId", args.newLaneId))
+      .withIndex("by_lane", (q) => q.eq("laneId", card.laneId))
+      .order("asc")
       .collect();
 
-    // Calculate final position
-    const finalPosition = Math.min(args.newPosition, targetLaneCards.length);
+    const oldWithout = oldLaneCards.filter((c) => c._id !== card._id);
 
-    await ctx.db.patch(args.cardId, {
-      laneId: args.newLaneId,
-      position: finalPosition,
-    });
+    if (args.newLaneId === card.laneId) {
+      // Moving within the same lane
+      const insertPos = Math.max(0, Math.min(args.newPosition, oldWithout.length));
+      oldWithout.splice(insertPos, 0, card);
+
+      for (let i = 0; i < oldWithout.length; i++) {
+        const c = oldWithout[i];
+        if (c._id === card._id) {
+          await ctx.db.patch(c._id, { position: i });
+        } else if (c.position !== i) {
+          await ctx.db.patch(c._id, { position: i });
+        }
+      }
+      return;
+    }
+
+    // Move across lanes
+    for (let i = 0; i < oldWithout.length; i++) {
+      const c = oldWithout[i];
+      if (c.position !== i) {
+        await ctx.db.patch(c._id, { position: i });
+      }
+    }
+
+    const newLaneCards = await ctx.db
+      .query("cards")
+      .withIndex("by_lane", (q) => q.eq("laneId", args.newLaneId))
+      .order("asc")
+      .collect();
+
+    const insertPos = Math.max(0, Math.min(args.newPosition, newLaneCards.length));
+    newLaneCards.splice(insertPos, 0, { ...card, laneId: args.newLaneId });
+
+    for (let i = 0; i < newLaneCards.length; i++) {
+      const c = newLaneCards[i];
+      if (c._id === card._id) {
+        await ctx.db.patch(c._id, { laneId: args.newLaneId, position: i });
+      } else if (c.position !== i) {
+        await ctx.db.patch(c._id, { position: i });
+      }
+    }
   },
 });
 
