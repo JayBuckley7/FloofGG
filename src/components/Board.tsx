@@ -204,7 +204,7 @@ export function Board({ boardId, publicView = false }: BoardProps) {
     );
   }
 
-  const sortedLanes = lanes.sort((a, b) => a.position - b.position);
+  const sortedLanes = [...lanes].sort((a, b) => a.position - b.position);
 
   const handleBackgroundChange = async (bg: string) => {
     await updateBoard({
