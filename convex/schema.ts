@@ -24,6 +24,35 @@ const applicationTables = {
     description: v.optional(v.string()),
     position: v.number(),
   }).index("by_lane", ["laneId"]),
+
+  comments: defineTable({
+    cardId: v.id("cards"),
+    userId: v.id("users"),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_card", ["cardId"]),
+
+  labels: defineTable({
+    boardId: v.id("boards"),
+    name: v.string(),
+    color: v.string(),
+  }).index("by_board", ["boardId"]),
+
+  cardLabels: defineTable({
+    cardId: v.id("cards"),
+    labelId: v.id("labels"),
+  })
+    .index("by_card", ["cardId"])
+    .index("by_label", ["labelId"])
+    .index("by_card_label", ["cardId", "labelId"]),
+
+  activities: defineTable({
+    cardId: v.id("cards"),
+    userId: v.id("users"),
+    type: v.string(),
+    text: v.optional(v.string()),
+    createdAt: v.number(),
+  }).index("by_card", ["cardId"]),
 };
 
 export default defineSchema({
