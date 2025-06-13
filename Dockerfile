@@ -5,22 +5,22 @@ FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# 1️⃣ Copy dependency manifests & install once
+# 1  Install dependencies deterministically
 COPY package*.json ./
-RUN npm ci --legacy-peer-deps          # deterministic install
+RUN npm ci --legacy-peer-deps
 
-# 2️⃣ Copy the rest of the source tree
+# 2  Copy source
 COPY . .
 
-# 3️⃣ Inject required frontend env-var
+# 3  Expose required frontend env var
 ARG VITE_CONVEX_URL
 ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
 
-# 4️⃣ Generate Convex client types so Vite can import them
-RUN npx --yes convex@latest codegen    # produces convex/_generated/*
+# 4  Generate Convex client types so Vite can import them
+RUN npx --yes convex@latest codegen          # ← **this is the missing step**
 
-# 5️⃣ Build the production bundle
-RUN npm run build                      # outputs to /app/dist
+# 5  Build the production bundle
+RUN npm run build                            # writes to /app/dist
 
 # ─────────────────────────────────────────────
 # Stage 2 – Serve with Nginx (small final image)
