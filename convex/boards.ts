@@ -142,3 +142,46 @@ export const getPublic = query({
     return board;
   },
 });
+
+export const clone = mutation({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      throw new Error("Not authenticated");
+    }
+
+    const board = await ctx.db.get(args.boardId);
+    if (!board) {
+      throw new Error("Board not found");
+    }
+
+    if (!board.isPublic && board.userId !== userId) {
+      throw new Error("Access denied");
+    }
+
+    const newBoardId = await ctx.db.insert("boards", {
+      name: board.name,
+      description: board.description,
+      background: board.background,
+      userId,
+      isPublic: false,
+    });
+
+    const lanes = await ctx.db
+      .query("lanes")
+      .withIndex("by_board", (q) => q.eq("boardId", args.boardId))
+      .collect();
+
+    for (const lane of lanes) {
+      await ctx.db.insert("lanes", {
+        boardId: newBoardId,
+        name: lane.name,
+        position: lane.position,
+        color: lane.color,
+      });
+    }
+
+    return newBoardId;
+  },
+});
