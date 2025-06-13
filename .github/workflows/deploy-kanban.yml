@@ -1,48 +1,52 @@
 #  ┌─────────────────────────────────────────────────────────┐
 #  │  Deploy Kanban Board to Cloud Run via Cloud Build      │
-#  │  • main         → auto-build + deploy to production     │
-#  │  • other branch → manual "Run workflow" → dev deploy    │
 #  └─────────────────────────────────────────────────────────┘
 
 name: Deploy to Cloud Run via Cloud Build
 
 on:
   push:
-    branches: [ main ]              # auto prod deploy
-  workflow_dispatch: {}             # manual dev deploy
+    branches: [ main ]            # auto prod deploy
+  workflow_dispatch: {}           # manual dev deploy
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write               # for Workload Identity
+      id-token: write             # OIDC → Workload Identity
 
     steps:
-    # ─── Repo & GCP auth ────────────────────────────────────
-    - uses: actions/checkout@v4
+    # ─── Repo + GCP auth ───────────────────────────────────
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - uses: google-github-actions/auth@v2
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
       with:
         workload_identity_provider: projects/49477009498/locations/global/workloadIdentityPools/github-pool/providers/github-provider
         service_account: github-actions@floofgg.iam.gserviceaccount.com
 
-    - uses: google-github-actions/setup-gcloud@v2
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
       with:
         project_id: floofgg
 
-    # ─── Install Node deps for Convex CLI & build caching ───
-    - uses: actions/setup-node@v4
+    # ─── Node + npm cache ──────────────────────────────────
+    - name: Install Node.js
+      uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        cache: npm
         cache-dependency-path: package-lock.json
 
-    - name: npm ci
-      run: npm ci
+    - name: Install Node dependencies
+      run: |
+        set -e
+        npm ci
 
-    # ─── Decide prod vs dev service names ───────────────────
-    - name: Choose environment
+    # ─── Choose prod vs dev service names ──────────────────
+    - name: Set environment variables
       id: env
       run: |
         if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
@@ -53,16 +57,17 @@ jobs:
           echo "ENVIRONMENT=development"        >> $GITHUB_OUTPUT
         fi
 
-    # ─── Front-end build env vars (app-config secret) ───────
+    # ─── Load front-end build vars (app-config) ────────────
     - name: Load secret env.json
+      id: secrets
       run: |
         gcloud secrets versions access latest --secret app-config > env.json
         cat env.json | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
 
-    # ────────────────────────────────────────────────────────
-    # ⬇⬇  NEW Convex admin steps  ⬇⬇
-    # ────────────────────────────────────────────────────────
-    - name: Fetch Convex deploy key
+    # ───────────────────────────────────────────────────────
+    # Convex deploy block  — minimal, no extra provider keys
+    # ───────────────────────────────────────────────────────
+    - name: Load Convex deploy key
       run: |
         gcloud secrets versions access latest --secret convex-deploy-key > deploy.key
         echo "CONVEX_DEPLOY_KEY=$(cat deploy.key)" >> $GITHUB_ENV
@@ -70,21 +75,14 @@ jobs:
     - name: Install Convex CLI
       run: npm install -g convex@latest
 
-    - name: Set provider secrets in Convex
+    - name: Convex deploy
       env:
         CONVEX_DEPLOY_KEY: ${{ env.CONVEX_DEPLOY_KEY }}
-        CLERK_SECRET_KEY:  ${{ secrets.CLERK_SECRET_KEY }}
-        CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
       run: |
-        convex env set CLERK_SECRET_KEY "$CLERK_SECRET_KEY" --deployment prod
-        convex env set CLERK_PUBLISHABLE_KEY "$CLERK_PUBLISHABLE_KEY" --deployment prod
-        # Optional schema migration:
-        # convex deploy --deployment prod
-    # ────────────────────────────────────────────────────────
-    # ⬆⬆  END Convex admin steps ⬆⬆
-    # ────────────────────────────────────────────────────────
+        convex deploy        # migrate schema if needed; no additional flags
+    # ───────────────────────────────────────────────────────
 
-    # ─── Cloud Build: build image + deploy Cloud Run ───────
+    # ─── Cloud Build: build + deploy Cloud Run ─────────────
     - name: Submit build to Cloud Build
       run: |
         gcloud builds submit \
