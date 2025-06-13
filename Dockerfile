@@ -1,36 +1,40 @@
-# Stage 1: Build the React application
+# ─────────────────────────────────────────────
+# Stage 1 – Build the Vite (React) application
+# ─────────────────────────────────────────────
 FROM node:18-alpine AS build
 
 WORKDIR /app
 
-# Copy package.json
-COPY package.json ./
+# 1️⃣ Copy dependency manifests & install once
+COPY package*.json ./
+RUN npm ci --legacy-peer-deps          # deterministic install
 
-# Install dependencies
-RUN npm install --legacy-peer-deps
-
-# Copy the rest of the application source code
+# 2️⃣ Copy the rest of the source tree
 COPY . .
 
-# Set the VITE_CONVEX_URL build argument
+# 3️⃣ Inject required frontend env-var
 ARG VITE_CONVEX_URL
 ENV VITE_CONVEX_URL=$VITE_CONVEX_URL
 
-# Build the application
-RUN npm run build
+# 4️⃣ Generate Convex client types so Vite can import them
+RUN npx --yes convex@latest codegen    # produces convex/_generated/*
 
-# Stage 2: Serve the application with Nginx
+# 5️⃣ Build the production bundle
+RUN npm run build                      # outputs to /app/dist
+
+# ─────────────────────────────────────────────
+# Stage 2 – Serve with Nginx (small final image)
+# ─────────────────────────────────────────────
 FROM nginx:1.21.6-alpine
 
-# Copy the build output from the build stage
+# Copy built assets
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration template
+# Provide a templated Nginx config (uses $PORT)
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# Expose port and set environment variable
 EXPOSE 8080
 ENV PORT=8080
 
-# Start Nginx with envsubst to replace $PORT in config
-CMD ["sh", "-c", "envsubst '$$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"] 
+# Render template → run Nginx
+CMD ["sh", "-c", "envsubst '$$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
