@@ -1,13 +1,16 @@
 steps:
-  # 1. List artifact repositories
-  - name: "gcr.io/cloud-builders/gcloud"
-    id: "List Artifact Repositories"
+  # 1. Build Docker image
+  - name: "gcr.io/cloud-builders/docker"
+    id: "Build Docker Image"
     args:
-      - "artifacts"
-      - "repositories"
-      - "list"
-      - "--project=floofgg"
-      - "--location=us-central1"
+      - "build"
+      - "--build-arg"
+      - "VITE_CONVEX_URL=${_VITE_CONVEX_URL}"
+      - "-t"
+      - "us-central1-docker.pkg.dev/$PROJECT_ID/kanban-board/${_SERVICE_NAME}:${_COMMIT_SHA}"
+      - "-t"
+      - "us-central1-docker.pkg.dev/$PROJECT_ID/kanban-board/${_SERVICE_NAME}:latest"
+      - "."
 
   # 2. Push image with commit SHA tag
   - name: "gcr.io/cloud-builders/docker"
@@ -23,7 +26,7 @@ steps:
     waitFor: ["Build Docker Image"]
     args:
       - "push"
-      - "us-central1-docker.pkg.dev/$PROJECT_ID/progressive-reader/${_SERVICE_NAME}:latest"
+      - "us-central1-docker.pkg.dev/$PROJECT_ID/kanban-board/${_SERVICE_NAME}:latest"
 
   # 4. Deploy to Cloud Run
   - name: "gcr.io/cloud-builders/gcloud"
@@ -47,6 +50,8 @@ steps:
 substitutions:
   _VITE_CONVEX_URL: 'https://glad-toad-245.convex.cloud'
   _SERVICE_NAME: 'kanban-board'
+  _COMMIT_SHA: '${COMMIT_SHA}'
+  _ENVIRONMENT: 'production'
 
 images:
   - "us-central1-docker.pkg.dev/$PROJECT_ID/kanban-board/${_SERVICE_NAME}:${_COMMIT_SHA}"
