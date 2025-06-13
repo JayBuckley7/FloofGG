@@ -94,7 +94,7 @@ export function Lane({ lane, viewMode, publicView = false }: LaneProps) {
     );
   }
 
-  const sortedCards = cards.sort((a, b) => a.position - b.position);
+  const sortedCards = [...cards].sort((a, b) => a.position - b.position);
 
   // Use editColor when editing, otherwise use lane.color
   const currentColor = isEditing ? editColor : (lane.color || "#f3f4f6");
