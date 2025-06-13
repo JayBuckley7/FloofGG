@@ -8,71 +8,87 @@ name: Deploy to Cloud Run via Cloud Build
 
 on:
   push:
-    branches: [ main ]        # automatic path
-  workflow_dispatch: {}       # manual path ("Run workflow" button)
+    branches: [ main ]              # auto prod deploy
+  workflow_dispatch: {}             # manual dev deploy
 
 jobs:
   build-and-deploy:
-    name: Build and Deploy
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write         # needed for OIDC
+      id-token: write               # for Workload Identity
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    # ─── Repo & GCP auth ────────────────────────────────────
+    - uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: projects/49477009498/locations/global/workloadIdentityPools/github-pool/providers/github-provider
-          service_account: github-actions@floofgg.iam.gserviceaccount.com
+    - uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: projects/49477009498/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+        service_account: github-actions@floofgg.iam.gserviceaccount.com
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-        with:
-          project_id: floofgg
+    - uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: floofgg
 
-      # ───────────────────────────────────────────────────────
-      # Node 20 + npm cache based on package-lock.json
-      # ───────────────────────────────────────────────────────
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+    # ─── Install Node deps for Convex CLI & build caching ───
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: package-lock.json
 
-      - name: Install Node dependencies
-        run: |
-          set -e
-          npm ci
+    - name: npm ci
+      run: npm ci
 
-      - name: Set environment variables
-        id: env
-        run: |
-          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
-            echo "SERVICE_NAME=kanban-board"      >> $GITHUB_OUTPUT
-            echo "ENVIRONMENT=production"         >> $GITHUB_OUTPUT
-          else
-            echo "SERVICE_NAME=kanban-board-dev"  >> $GITHUB_OUTPUT
-            echo "ENVIRONMENT=development"        >> $GITHUB_OUTPUT
-          fi
+    # ─── Decide prod vs dev service names ───────────────────
+    - name: Choose environment
+      id: env
+      run: |
+        if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+          echo "SERVICE_NAME=kanban-board"      >> $GITHUB_OUTPUT
+          echo "ENVIRONMENT=production"         >> $GITHUB_OUTPUT
+        else
+          echo "SERVICE_NAME=kanban-board-dev"  >> $GITHUB_OUTPUT
+          echo "ENVIRONMENT=development"        >> $GITHUB_OUTPUT
+        fi
 
-      - name: Load secret env.json
-        id: secrets
-        run: |
-          gcloud secrets versions access latest --secret app-config > env.json
-          # Export *all* keys (harmless for this job; only VITE_CONVEX_URL is later used)
-          cat env.json | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
+    # ─── Front-end build env vars (app-config secret) ───────
+    - name: Load secret env.json
+      run: |
+        gcloud secrets versions access latest --secret app-config > env.json
+        cat env.json | jq -r 'to_entries|map("\(.key)=\(.value|tostring)")|.[]' >> $GITHUB_ENV
 
-      - name: Submit build to Cloud Build
-        run: |
-          # Unset any accidental overrides
-          unset SERVICE_URL || true
-          gcloud builds submit \
-            --project=floofgg \
-            --config=cloudbuild.yaml \
-            --substitutions=_COMMIT_SHA=${{ github.sha }},_SERVICE_NAME=${{ steps.env.outputs.SERVICE_NAME }},_ENVIRONMENT=${{ steps.env.outputs.ENVIRONMENT }},_VITE_CONVEX_URL=$VITE_CONVEX_URL \
-            --gcs-log-dir=gs://floofgg_cloudbuild/logs
+    # ────────────────────────────────────────────────────────
+    # ⬇⬇  NEW Convex admin steps  ⬇⬇
+    # ────────────────────────────────────────────────────────
+    - name: Fetch Convex deploy key
+      run: |
+        gcloud secrets versions access latest --secret convex-deploy-key > deploy.key
+        echo "CONVEX_DEPLOY_KEY=$(cat deploy.key)" >> $GITHUB_ENV
+
+    - name: Install Convex CLI
+      run: npm install -g convex@latest
+
+    - name: Set provider secrets in Convex
+      env:
+        CONVEX_DEPLOY_KEY: ${{ env.CONVEX_DEPLOY_KEY }}
+        CLERK_SECRET_KEY:  ${{ secrets.CLERK_SECRET_KEY }}
+        CLERK_PUBLISHABLE_KEY: ${{ secrets.CLERK_PUBLISHABLE_KEY }}
+      run: |
+        convex env set CLERK_SECRET_KEY "$CLERK_SECRET_KEY" --deployment prod
+        convex env set CLERK_PUBLISHABLE_KEY "$CLERK_PUBLISHABLE_KEY" --deployment prod
+        # Optional schema migration:
+        # convex deploy --deployment prod
+    # ────────────────────────────────────────────────────────
+    # ⬆⬆  END Convex admin steps ⬆⬆
+    # ────────────────────────────────────────────────────────
+
+    # ─── Cloud Build: build image + deploy Cloud Run ───────
+    - name: Submit build to Cloud Build
+      run: |
+        gcloud builds submit \
+          --project=floofgg \
+          --config=cloudbuild.yaml \
+          --substitutions=_COMMIT_SHA=${{ github.sha }},_SERVICE_NAME=${{ steps.env.outputs.SERVICE_NAME }},_ENVIRONMENT=${{ steps.env.outputs.ENVIRONMENT }},_VITE_CONVEX_URL=$VITE_CONVEX_URL \
+          --gcs-log-dir=gs://floofgg_cloudbuild/logs
