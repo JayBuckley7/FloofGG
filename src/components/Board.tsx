@@ -377,7 +377,7 @@ export function Board({ boardId, publicView = false }: BoardProps) {
       }} 
       className="flex-1 relative w-full min-h-screen"
     >
-      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full px-0 sm:px-6 lg:px-8 py-6">
         <div className="mb-4 sm:mb-6">
           {isEditingName ? (
             <form
@@ -781,7 +781,7 @@ export function Board({ boardId, publicView = false }: BoardProps) {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           style={{ transform: `scale(${laneZoom})`, transformOrigin: 'top left' }}
-          className="flex gap-2 sm:gap-4 lg:gap-6 overflow-x-auto pb-6 scrollbar-hide px-2 sm:px-0"
+          className="flex gap-2 sm:gap-4 lg:gap-6 overflow-x-auto pb-6 scrollbar-hide px-0"
         >
           <SortableContext items={sortedLanes.map(l => l._id)} strategy={horizontalListSortingStrategy}>
             {sortedLanes.map((lane) => (
