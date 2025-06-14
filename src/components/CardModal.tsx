@@ -19,10 +19,15 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
   const cardLabels = useQuery(api.labels.labelsForCard, { cardId: card._id });
   const toggleLabel = useMutation(api.labels.toggleLabelOnCard);
   const activities = useQuery(api.activities.listForCard, { cardId: card._id });
+  const checklist = useQuery(api.checklists.list, { cardId: card._id });
+  const addItem = useMutation(api.checklists.add);
+  const toggleItem = useMutation(api.checklists.toggle);
+  const removeItem = useMutation(api.checklists.remove);
 
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description || "");
   const [commentText, setCommentText] = useState("");
+  const [itemText, setItemText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
 
   const handleSave = async () => {
@@ -46,6 +51,24 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
     if (!commentText.trim()) return;
     await addComment({ cardId: card._id, text: commentText.trim() });
     setCommentText("");
+  };
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!itemText.trim()) return;
+    await addItem({ cardId: card._id, text: itemText.trim() });
+    setItemText("");
+  };
+
+  const handleToggleItem = async (
+    itemId: Id<"checklists">,
+    completed: boolean
+  ) => {
+    await toggleItem({ itemId, completed: !completed });
+  };
+
+  const handleRemoveItem = async (itemId: Id<"checklists">) => {
+    await removeItem({ itemId });
   };
 
   const handleToggleLabel = async (labelId: Id<"labels">) => {
@@ -135,6 +158,42 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
                     >
                       {label.name}
                     </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {checklist && (
+            <div>
+              <h4 className="font-medium mb-1">Checklist</h4>
+              <form onSubmit={handleAddItem} className="flex gap-2 mb-2">
+                <input
+                  className="flex-1 border rounded px-2 py-1 text-sm"
+                  value={itemText}
+                  onChange={(e) => setItemText(e.target.value)}
+                  placeholder="Add item"
+                />
+                <button type="submit" className="px-3 py-1 bg-gray-800 text-white rounded text-sm">
+                  Add
+                </button>
+              </form>
+              <div className="space-y-1">
+                {checklist.map((item) => (
+                  <label key={item._id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={item.completed}
+                      onChange={() => handleToggleItem(item._id, item.completed)}
+                    />
+                    <span className={item.completed ? "line-through text-gray-500" : ""}>{item.text}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(item._id)}
+                      className="text-gray-400 hover:text-red-500 ml-1"
+                    >
+                      🗑️
+                    </button>
                   </label>
                 ))}
               </div>
