@@ -345,6 +345,7 @@ export function Board({ boardId, publicView = false }: BoardProps) {
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     if (e.touches.length === 2) {
+      e.preventDefault();
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       pinchState.current.distance = Math.hypot(dx, dy);
@@ -353,10 +354,18 @@ export function Board({ boardId, publicView = false }: BoardProps) {
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (e.touches.length === 2 && pinchState.current.distance) {
+    if (e.touches.length === 2 && pinchState.current.distance !== null) {
+      e.preventDefault();
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const distance = Math.hypot(dx, dy);
+
+      if (pinchState.current.distance === 0) {
+        if (distance === 0) return;
+        pinchState.current.distance = distance;
+        return;
+      }
+
       const scale = distance / pinchState.current.distance;
       let newZoom = pinchState.current.zoom * scale;
       newZoom = Math.min(1.5, Math.max(0.5, newZoom));
