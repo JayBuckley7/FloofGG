@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { useDroppable } from "@dnd-kit/core";
 import { api } from "../../convex/_generated/api";
 import { Doc, Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -29,6 +30,11 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
   const [commentText, setCommentText] = useState("");
   const [itemText, setItemText] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: `modal-${card._id}`,
+    data: { type: "cardModal", cardId: card._id },
+  });
 
   const handleSave = async () => {
     await updateCard({
@@ -80,7 +86,10 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-2">
-      <div className="bg-white rounded w-full max-w-xl p-4 overflow-y-auto max-h-full">
+      <div
+        ref={setNodeRef}
+        className={`bg-white rounded w-full max-w-xl p-4 overflow-y-auto max-h-full ${isOver ? 'ring-2 ring-blue-500' : ''}`}
+      >
         <div className="flex justify-between items-start mb-4">
           <h2 className="text-lg font-semibold">Card Details</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
