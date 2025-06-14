@@ -3,7 +3,6 @@ import { api } from "../../convex/_generated/api";
 import { Id, Doc } from "../../convex/_generated/dataModel";
 import { Lane } from "./Lane";
 import { AddLane } from "./AddLane";
-import { BoardMembers } from "./BoardMembers";
 import {
   DndContext,
   DragEndEvent,
@@ -457,13 +456,10 @@ export function Board({ boardId, publicView = false }: BoardProps) {
                   >
                     <Pencil className="w-3 h-3" /> Add description
                   </button>
-              )
-            )}
-          </>
-        )}
-        {!publicView && (
-          <BoardMembers boardId={boardId} ownerId={board.userId} />
-        )}
+                )
+              )}
+            </>
+          )}
         {!publicView && viewMode === "design" && (
           <div className="mt-3 flex items-center">
             <label className="inline-flex items-center group cursor-pointer">

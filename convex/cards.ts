@@ -1,20 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Id } from "../../convex/_generated/dataModel";
-
-async function ensureEditor(ctx: any, boardId: Id<"boards">, userId: Id<"users">) {
-  const board = await ctx.db.get(boardId);
-  if (!board) throw new Error("Board not found");
-  if (board.userId === userId) return board;
-  const members = await ctx.db
-    .query("boardMembers")
-    .withIndex("by_board", q => q.eq("boardId", boardId))
-    .collect();
-  const allowed = members.some(m => m.userId === userId && m.role === "editor");
-  if (!allowed) throw new Error("Access denied");
-  return board;
-}
 
 export const list = query({
   args: { laneId: v.id("lanes") },
@@ -29,7 +15,11 @@ export const list = query({
       throw new Error("Lane not found");
     }
 
-    await ensureEditor(ctx, lane.boardId, userId);
+    // Verify user owns the board
+    const board = await ctx.db.get(lane.boardId);
+    if (!board || board.userId !== userId) {
+      throw new Error("Access denied");
+    }
 
     return await ctx.db
       .query("cards")
@@ -56,7 +46,11 @@ export const create = mutation({
       throw new Error("Lane not found");
     }
 
-    await ensureEditor(ctx, lane.boardId, userId);
+    // Verify user owns the board
+    const board = await ctx.db.get(lane.boardId);
+    if (!board || board.userId !== userId) {
+      throw new Error("Access denied");
+    }
 
     // Get the highest position
     const cards = await ctx.db
@@ -97,7 +91,11 @@ export const update = mutation({
       throw new Error("Lane not found");
     }
 
-    await ensureEditor(ctx, lane.boardId, userId);
+    // Verify user owns the board
+    const board = await ctx.db.get(lane.boardId);
+    if (!board || board.userId !== userId) {
+      throw new Error("Access denied");
+    }
 
     await ctx.db.patch(args.cardId, {
       title: args.title,
@@ -124,7 +122,11 @@ export const remove = mutation({
       throw new Error("Lane not found");
     }
 
-    await ensureEditor(ctx, lane.boardId, userId);
+    // Verify user owns the board
+    const board = await ctx.db.get(lane.boardId);
+    if (!board || board.userId !== userId) {
+      throw new Error("Access denied");
+    }
 
     await ctx.db.delete(args.cardId);
   },
@@ -174,7 +176,13 @@ export const move = mutation({
       throw new Error("Lane not found");
     }
 
-    await ensureEditor(ctx, oldLane.boardId, userId);
+    // Verify user owns both boards (should be the same board)
+    const oldBoard = await ctx.db.get(oldLane.boardId);
+    const newBoard = await ctx.db.get(newLane.boardId);
+    
+    if (!oldBoard || !newBoard || oldBoard.userId !== userId || newBoard.userId !== userId) {
+      throw new Error("Access denied");
+    }
 
     // Reindex cards to keep sequential positions
     const oldLaneCards = await ctx.db
