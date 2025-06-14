@@ -46,6 +46,13 @@ const applicationTables = {
     .index("by_label", ["labelId"])
     .index("by_card_label", ["cardId", "labelId"]),
 
+  checklists: defineTable({
+    cardId: v.id("cards"),
+    text: v.string(),
+    completed: v.boolean(),
+    position: v.number(),
+  }).index("by_card", ["cardId"]),
+
   activities: defineTable({
     cardId: v.id("cards"),
     userId: v.id("users"),
