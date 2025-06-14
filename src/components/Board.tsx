@@ -790,7 +790,7 @@ export function Board({ boardId, publicView = false }: BoardProps) {
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           style={{ transform: `scale(${laneZoom})`, transformOrigin: 'top left' }}
-          className="flex gap-2 sm:gap-4 lg:gap-6 overflow-x-auto pb-6 scrollbar-hide px-0"
+          className="flex gap-2 sm:gap-4 lg:gap-6 overflow-x-auto pb-6 scrollbar-hide px-0 min-w-max"
         >
           <SortableContext items={sortedLanes.map(l => l._id)} strategy={horizontalListSortingStrategy}>
             {sortedLanes.map((lane) => (
