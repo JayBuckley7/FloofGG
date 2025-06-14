@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Doc } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
+import { CheckSquare } from "lucide-react";
 
 import { Id } from "../../convex/_generated/dataModel";
 import { CardModal } from "./CardModal";
@@ -18,6 +20,10 @@ interface CardProps {
 
 export function Card({ card, boardId, isDragging = false, viewMode = "use" }: CardProps) {
   const deleteCard = useMutation(api.cards.remove);
+  const checklist = useQuery(api.checklists.list, { cardId: card._id });
+
+  const completedCount = checklist?.filter((item) => item.completed).length ?? 0;
+  const totalCount = checklist?.length ?? 0;
   
   const [showModal, setShowModal] = useState(false);
 
@@ -86,6 +92,14 @@ export function Card({ card, boardId, isDragging = false, viewMode = "use" }: Ca
             <h4 className="font-medium text-gray-900 text-sm mb-1">{card.title}</h4>
             {card.description && (
               <p className="text-gray-600 text-xs whitespace-pre-line">{card.description}</p>
+            )}
+            {totalCount > 0 && (
+              <div className="flex items-center gap-1 text-gray-600 text-xs mt-1">
+                <CheckSquare className="w-3 h-3" />
+                <span>
+                  {completedCount}/{totalCount}
+                </span>
+              </div>
             )}
           </div>
           {viewMode === "use" && (
