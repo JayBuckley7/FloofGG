@@ -1,7 +1,6 @@
-const CACHE_NAME = 'floofgg-cache-v2';
+const CACHE_NAME = 'floofgg-cache-v3';
 const URLS_TO_CACHE = [
   '/',
-  '/index.html',
   '/manifest.json',
   '/images/ash.png',
   '/images/card_bk.png',
@@ -44,6 +43,19 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then(response => response || fetch(event.request))
   );
