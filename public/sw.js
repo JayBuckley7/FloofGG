@@ -1,8 +1,9 @@
-const CACHE_NAME = 'floofgg-cache-v1';
+const CACHE_NAME = 'floofgg-cache-v2';
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
-  '/manifest.json'
+  '/manifest.json',
+  '/offline.html'
 ];
 
 self.addEventListener('install', event => {
@@ -21,6 +22,15 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request).then(response => response || fetch(event.request))
+    caches.match(event.request).then(response => {
+      if (response) {
+        return response;
+      }
+      return fetch(event.request).catch(() => {
+        if (event.request.mode === 'navigate') {
+          return caches.match('/offline.html');
+        }
+      });
+    })
   );
 });

@@ -27,3 +27,10 @@ Check out the [Convex docs](https://docs.convex.dev/) for more information on ho
 ## HTTP API
 
 User-defined http routes are defined in the `convex/router.ts` file. We split these routes into a separate file from `convex/http.ts` to allow us to prevent the LLM from modifying the authentication routes.
+
+## Offline mode
+
+The app includes a basic service worker to cache core assets. If you're offline,
+navigation requests fall back to `offline.html`. When signing out without a
+connection, the client clears cached auth state before attempting to contact the
+server.
