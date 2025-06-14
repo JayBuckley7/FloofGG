@@ -784,20 +784,22 @@ export function Board({ boardId, publicView = false }: BoardProps) {
         onDragMove={viewMode === "use" ? handleDragMove : undefined}
         onDragEnd={viewMode === "use" ? handleDragEnd : undefined}
       >
-        <div
-          ref={laneContainerRef}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-          style={{ transform: `scale(${laneZoom})`, transformOrigin: 'top left' }}
-          className="flex gap-2 sm:gap-4 lg:gap-6 overflow-x-auto pb-6 scrollbar-hide px-0 min-w-max"
-        >
-          <SortableContext items={sortedLanes.map(l => l._id)} strategy={horizontalListSortingStrategy}>
-            {sortedLanes.map((lane) => (
-              <Lane key={lane._id} lane={lane} viewMode={viewMode} publicView={publicView} />
-            ))}
-          </SortableContext>
-          {viewMode === "design" && <AddLane boardId={boardId} />}
+        <div className="overflow-x-auto pb-6 scrollbar-hide">
+          <div
+            ref={laneContainerRef}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            style={{ transform: `scale(${laneZoom})`, transformOrigin: 'top left' }}
+            className="flex gap-2 sm:gap-4 lg:gap-6 px-0 min-w-max"
+          >
+            <SortableContext items={sortedLanes.map(l => l._id)} strategy={horizontalListSortingStrategy}>
+              {sortedLanes.map((lane) => (
+                <Lane key={lane._id} lane={lane} viewMode={viewMode} publicView={publicView} />
+              ))}
+            </SortableContext>
+            {viewMode === "design" && <AddLane boardId={boardId} />}
+          </div>
         </div>
         
         {viewMode === "use" && (
