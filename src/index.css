@@ -16,6 +16,7 @@ html, body {
   padding: 0;
   background: #f5f7fa;
   min-height: 100vh;
+  overflow-x: hidden; /* prevent page from growing wider than the viewport */
 }
 
 body {
