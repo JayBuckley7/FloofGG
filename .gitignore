@@ -38,3 +38,4 @@ jwt-private.pem
 jwt-public.pem
 jwk.json
 jwks.json
+convex/_generated/api.d.ts
