@@ -248,3 +248,93 @@ export const clone = mutation({
     return newBoardId;
   },
 });
+
+export const addMember = mutation({
+  args: { boardId: v.id("boards"), userId: v.id("users"), role: v.string() },
+  handler: async (ctx, args) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+
+    const board = await ctx.db.get(args.boardId);
+    if (!board || board.userId !== callerId) throw new Error("Access denied");
+
+    const existing = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board", q => q.eq("boardId", args.boardId))
+      .collect();
+    if (existing.find(m => m.userId === args.userId)) return;
+
+    await ctx.db.insert("boardMembers", {
+      boardId: args.boardId,
+      userId: args.userId,
+      role: args.role,
+    });
+  },
+});
+
+export const removeMember = mutation({
+  args: { boardId: v.id("boards"), userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Not authenticated");
+
+    const board = await ctx.db.get(args.boardId);
+    if (!board || board.userId !== callerId) throw new Error("Access denied");
+
+    const members = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board", q => q.eq("boardId", args.boardId))
+      .collect();
+    const member = members.find(m => m.userId === args.userId);
+    if (member) await ctx.db.delete(member._id);
+  },
+});
+
+export const leaveBoard = mutation({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const members = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board", q => q.eq("boardId", args.boardId))
+      .collect();
+    const member = members.find(m => m.userId === userId);
+    if (member) await ctx.db.delete(member._id);
+  },
+});
+
+export const listMembers = query({
+  args: { boardId: v.id("boards") },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Not authenticated");
+
+    const board = await ctx.db.get(args.boardId);
+    if (!board) throw new Error("Board not found");
+
+    if (board.userId !== userId) {
+      const members = await ctx.db
+        .query("boardMembers")
+        .withIndex("by_board", q => q.eq("boardId", args.boardId))
+        .collect();
+      if (!members.some(m => m.userId === userId)) {
+        throw new Error("Access denied");
+      }
+    }
+
+    const members = await ctx.db
+      .query("boardMembers")
+      .withIndex("by_board", q => q.eq("boardId", args.boardId))
+      .collect();
+
+    const results = [] as any[];
+    for (const m of members) {
+      const u = await ctx.db.get(m.userId);
+      results.push({ ...m, email: u?.email });
+    }
+    results.push({ boardId: args.boardId, userId: board.userId, role: "owner" });
+    return results;
+  },
+});

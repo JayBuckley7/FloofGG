@@ -60,6 +60,14 @@ const applicationTables = {
     text: v.optional(v.string()),
     createdAt: v.number(),
   }).index("by_card", ["cardId"]),
+
+  boardMembers: defineTable({
+    boardId: v.id("boards"),
+    userId: v.id("users"),
+    role: v.string(),
+  })
+    .index("by_board", ["boardId"])
+    .index("by_user", ["userId"]),
 };
 
 export default defineSchema({
