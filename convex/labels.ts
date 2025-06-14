@@ -1,14 +1,27 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { Id } from "../../convex/_generated/dataModel";
+
+async function ensureEditor(ctx: any, boardId: Id<"boards">, userId: Id<"users">) {
+  const board = await ctx.db.get(boardId);
+  if (!board) throw new Error("Board not found");
+  if (board.userId === userId) return board;
+  const members = await ctx.db
+    .query("boardMembers")
+    .withIndex("by_board", q => q.eq("boardId", boardId))
+    .collect();
+  const allowed = members.some(m => m.userId === userId && m.role === "editor");
+  if (!allowed) throw new Error("Access denied");
+  return board;
+}
 
 export const listForBoard = query({
   args: { boardId: v.id("boards") },
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-    const board = await ctx.db.get(args.boardId);
-    if (!board || board.userId !== userId) throw new Error("Access denied");
+    await ensureEditor(ctx, args.boardId, userId);
 
     return await ctx.db
       .query("labels")
@@ -22,8 +35,7 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Not authenticated");
-    const board = await ctx.db.get(args.boardId);
-    if (!board || board.userId !== userId) throw new Error("Access denied");
+    await ensureEditor(ctx, args.boardId, userId);
 
     return await ctx.db.insert("labels", {
       boardId: args.boardId,
@@ -45,8 +57,7 @@ export const labelsForCard = query({
     const lane = await ctx.db.get(card.laneId);
     if (!lane) throw new Error("Lane not found");
 
-    const board = await ctx.db.get(lane.boardId);
-    if (!board || board.userId !== userId) throw new Error("Access denied");
+    await ensureEditor(ctx, lane.boardId, userId);
 
     const assigns = await ctx.db
       .query("cardLabels")
@@ -74,8 +85,7 @@ export const toggleLabelOnCard = mutation({
     const lane = await ctx.db.get(card.laneId);
     if (!lane) throw new Error("Lane not found");
 
-    const board = await ctx.db.get(lane.boardId);
-    if (!board || board.userId !== userId) throw new Error("Access denied");
+    await ensureEditor(ctx, lane.boardId, userId);
 
     const existing = await ctx.db
       .query("cardLabels")
