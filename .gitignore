@@ -32,4 +32,9 @@ env.json
 
 # Convex generated files *
 convex/_generated
- 
+
+# JWT/JWK keys - never commit these!
+jwt-private.pem
+jwt-public.pem
+jwk.json
+jwks.json

@@ -17,6 +17,7 @@ import type * as activities from "../activities.js";
 import type * as auth from "../auth.js";
 import type * as boards from "../boards.js";
 import type * as cards from "../cards.js";
+import type * as checklists from "../checklists.js";
 import type * as comments from "../comments.js";
 import type * as http from "../http.js";
 import type * as labels from "../labels.js";
@@ -36,6 +37,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   boards: typeof boards;
   cards: typeof cards;
+  checklists: typeof checklists;
   comments: typeof comments;
   http: typeof http;
   labels: typeof labels;
