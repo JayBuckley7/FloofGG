@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
+import { Id, Doc } from "../../convex/_generated/dataModel";
 import { Lane } from "./Lane";
 import { AddLane } from "./AddLane";
 import {
@@ -29,6 +29,7 @@ export function Board({ boardId, publicView = false }: BoardProps) {
   const board = useQuery(publicView ? api.boards.getPublic : api.boards.get, { boardId });
   const lanes = useQuery(publicView ? api.lanes.listPublic : api.lanes.list, { boardId });
   const moveCard = useMutation(api.cards.move);
+  const addChecklistItem = useMutation(api.checklists.add);
   const updateBoard = useMutation(api.boards.update);
   
   const [activeCard, setActiveCard] = useState<any>(null);
@@ -307,6 +308,7 @@ export function Board({ boardId, publicView = false }: BoardProps) {
       const cardId = active.id as Id<"cards">;
       const overId = over.id;
       const overData = over.data.current;
+      const draggedCard = active.data.current.card as Doc<"cards">;
 
       if (overData?.type === "lane") {
         // Moving to a different lane
@@ -324,6 +326,10 @@ export function Board({ boardId, publicView = false }: BoardProps) {
           newLaneId: targetCard.laneId,
           newPosition: targetCard.position,
         });
+      } else if (overData?.type === "cardModal") {
+        const targetCardId = overData.cardId as Id<"cards">;
+        await addChecklistItem({ cardId: targetCardId, text: draggedCard.title });
+        toast.success(`Added "${draggedCard.title}" to checklist`);
       }
     }
 
