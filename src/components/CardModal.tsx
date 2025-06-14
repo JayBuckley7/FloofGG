@@ -3,7 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Doc, Id } from "../../convex/_generated/dataModel";
 import { toast } from "sonner";
-import { Pencil } from "lucide-react";
+import { Pencil, ArrowLeft, X } from "lucide-react";
 
 interface CardModalProps {
   card: Doc<"cards">;
@@ -23,6 +23,8 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
   const addItem = useMutation(api.checklists.add);
   const toggleItem = useMutation(api.checklists.toggle);
   const removeItem = useMutation(api.checklists.remove);
+  const lanes = useQuery(api.lanes.list, { boardId });
+  const createCard = useMutation(api.cards.create);
 
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description || "");
@@ -69,6 +71,17 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
 
   const handleRemoveItem = async (itemId: Id<"checklists">) => {
     await removeItem({ itemId });
+  };
+
+  const handleSpawnTask = async (text: string) => {
+    if (!lanes) return;
+    const todo = lanes.find((l) => l.name.toLowerCase() === "to do");
+    if (!todo) {
+      toast.error("No 'To Do' lane found");
+      return;
+    }
+    await createCard({ laneId: todo._id, title: text, description: undefined });
+    toast.success("Task created");
   };
 
   const handleToggleLabel = async (labelId: Id<"labels">) => {
@@ -189,10 +202,17 @@ export function CardModal({ card, boardId, onClose }: CardModalProps) {
                     <span className={item.completed ? "line-through text-gray-500" : ""}>{item.text}</span>
                     <button
                       type="button"
+                      onClick={() => handleSpawnTask(item.text)}
+                      className="text-gray-400 hover:text-blue-500"
+                    >
+                      <ArrowLeft className="w-3 h-3" />
+                    </button>
+                    <button
+                      type="button"
                       onClick={() => handleRemoveItem(item._id)}
                       className="text-gray-400 hover:text-red-500 ml-1"
                     >
-                      🗑️
+                      <X className="w-3 h-3" />
                     </button>
                   </label>
                 ))}
