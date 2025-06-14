@@ -36,6 +36,8 @@ export function Board({ boardId, publicView = false }: BoardProps) {
   const [viewMode, setViewMode] = useState<"use" | "design" | "view">(
     publicView ? "view" : "use"
   );
+  // zoom level for mobile lane scaling
+  const [laneZoom, setLaneZoom] = useState(1);
   const [bgMode, setBgMode] = useState<'color' | 'gradient' | 'image' | 'gradient+image'>('color');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [bgGradient, setBgGradient] = useState(gradientOptions[0]);
@@ -725,13 +727,35 @@ export function Board({ boardId, publicView = false }: BoardProps) {
         )}
       </div>
 
+      {/* Mobile zoom controls */}
+      <div className="flex items-center justify-center gap-2 mt-2 sm:hidden">
+        <button
+          type="button"
+          onClick={() => setLaneZoom(z => Math.max(0.5, z - 0.1))}
+          className="px-2 py-1 rounded bg-gray-200 text-gray-700"
+        >
+          -
+        </button>
+        <button
+          type="button"
+          onClick={() => setLaneZoom(z => Math.min(1.5, z + 0.1))}
+          className="px-2 py-1 rounded bg-gray-200 text-gray-700"
+        >
+          +
+        </button>
+      </div>
+
       <DndContext
         sensors={sensors}
         onDragStart={viewMode === "use" ? handleDragStart : undefined}
         onDragMove={viewMode === "use" ? handleDragMove : undefined}
         onDragEnd={viewMode === "use" ? handleDragEnd : undefined}
       >
-        <div ref={laneContainerRef} className="flex gap-2 sm:gap-4 lg:gap-6 overflow-x-auto pb-6 scrollbar-hide px-2 sm:px-0">
+        <div
+          ref={laneContainerRef}
+          style={{ transform: `scale(${laneZoom})`, transformOrigin: 'top left' }}
+          className="flex gap-2 sm:gap-4 lg:gap-6 overflow-x-auto pb-6 scrollbar-hide px-2 sm:px-0"
+        >
           <SortableContext items={sortedLanes.map(l => l._id)} strategy={horizontalListSortingStrategy}>
             {sortedLanes.map((lane) => (
               <Lane key={lane._id} lane={lane} viewMode={viewMode} publicView={publicView} />
