@@ -39,6 +39,10 @@ export function Board({ boardId, publicView = false }: BoardProps) {
   );
   // zoom level for mobile lane scaling
   const [laneZoom, setLaneZoom] = useState(1);
+  const pinchState = useRef<{ distance: number | null; zoom: number }>({
+    distance: null,
+    zoom: 1,
+  });
   const [bgMode, setBgMode] = useState<'color' | 'gradient' | 'image' | 'gradient+image'>('color');
   const [bgColor, setBgColor] = useState('#ffffff');
   const [bgGradient, setBgGradient] = useState(gradientOptions[0]);
@@ -188,7 +192,7 @@ export function Board({ boardId, publicView = false }: BoardProps) {
 
   if (board === undefined || lanes === undefined) {
     return (
-      <div className="flex-1 relative w-screen ml-[calc(-50vw+50%)] mr-[calc(-50vw+50%)] min-h-screen bg-gray-100">
+      <div className="flex-1 relative w-full min-h-screen bg-gray-100">
         <div className="flex justify-center items-center min-h-screen">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
@@ -339,12 +343,39 @@ export function Board({ boardId, publicView = false }: BoardProps) {
     setActiveCardData(null);
   };
 
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      pinchState.current.distance = Math.hypot(dx, dy);
+      pinchState.current.zoom = laneZoom;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 2 && pinchState.current.distance) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const distance = Math.hypot(dx, dy);
+      const scale = distance / pinchState.current.distance;
+      let newZoom = pinchState.current.zoom * scale;
+      newZoom = Math.min(1.5, Math.max(0.5, newZoom));
+      setLaneZoom(newZoom);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length < 2) {
+      pinchState.current.distance = null;
+    }
+  };
+
   return (
     <div 
       style={{ 
         background: board.background ?? 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)'
       }} 
-      className="flex-1 relative w-screen ml-[calc(-50vw+50%)] mr-[calc(-50vw+50%)] min-h-screen"
+      className="flex-1 relative w-full min-h-screen"
     >
       <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-4 sm:mb-6">
@@ -733,22 +764,9 @@ export function Board({ boardId, publicView = false }: BoardProps) {
         )}
       </div>
 
-      {/* Mobile zoom controls */}
-      <div className="flex items-center justify-center gap-2 mt-2 sm:hidden">
-        <button
-          type="button"
-          onClick={() => setLaneZoom(z => Math.max(0.5, z - 0.1))}
-          className="px-2 py-1 rounded bg-gray-200 text-gray-700"
-        >
-          -
-        </button>
-        <button
-          type="button"
-          onClick={() => setLaneZoom(z => Math.min(1.5, z + 0.1))}
-          className="px-2 py-1 rounded bg-gray-200 text-gray-700"
-        >
-          +
-        </button>
+      {/* Mobile zoom hint */}
+      <div className="text-center text-xs text-gray-500 mt-2 sm:hidden">
+        Pinch with two fingers to zoom
       </div>
 
       <DndContext
@@ -759,6 +777,9 @@ export function Board({ boardId, publicView = false }: BoardProps) {
       >
         <div
           ref={laneContainerRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           style={{ transform: `scale(${laneZoom})`, transformOrigin: 'top left' }}
           className="flex gap-2 sm:gap-4 lg:gap-6 overflow-x-auto pb-6 scrollbar-hide px-2 sm:px-0"
         >
