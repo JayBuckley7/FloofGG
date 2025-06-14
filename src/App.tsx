@@ -23,7 +23,15 @@ function AppRoutes() {
           <Navbar />
         </>
       )}
-      <main className={`flex-1 ${location.pathname.startsWith("/board") || location.pathname.startsWith("/duel") ? "" : "p-4"}`}>
+      <main
+        className={`flex-1 ${
+          location.pathname.startsWith("/board") ||
+          location.pathname.startsWith("/kanban") ||
+          location.pathname.startsWith("/duel")
+            ? ""
+            : "p-4"
+        }`}
+      >
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/top-floof" element={<TopFloof />} />
