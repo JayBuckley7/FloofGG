@@ -39,7 +39,7 @@ export default function Duel() {
   const [undoStack, setUndoStack] = useState<{players: Player[], operand: string}[]>([]);
   const [showMobileKeypad, setShowMobileKeypad] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [isLandscape, setIsLandscape] = useState(false);
+  const [showToolsModal, setShowToolsModal] = useState(false);
 
   // Set page title
   useEffect(() => {
@@ -213,13 +213,12 @@ export default function Duel() {
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640);
-      setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth < 1024);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     window.addEventListener('orientationchange', checkMobile);
-    
+
     return () => {
       window.removeEventListener('resize', checkMobile);
       window.removeEventListener('orientationchange', checkMobile);
@@ -287,6 +286,17 @@ export default function Duel() {
     }
   };
 
+  const insertZeros = (count: number) => {
+    setOperand((prev) => {
+      let next = prev;
+      for (let i = 0; i < count; i += 1) {
+        // If operand is all zeros, inserting more zeros does not change it
+        next = next === '0000' ? '0000' : next.slice(1) + '0';
+      }
+      return next;
+    });
+  };
+
   const deleteLastDigit = () => {
     setOperand('0' + operand.slice(0, -1));
   };
@@ -307,6 +317,12 @@ export default function Duel() {
 
   const toggleDefaultTime = () => {
     setShowDefaultTimeModal(true);
+  };
+
+  const getNextDefaultTime = (current: number): number => {
+    if (current === 30) return 45;
+    if (current === 45) return 50;
+    return 30;
   };
 
   const changeDefaultTime = (newDefault: number) => {
@@ -406,13 +422,11 @@ export default function Duel() {
   };
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex overflow-hidden select-none">
+    <div className="min-h-[100dvh] w-full bg-gray-900 text-white flex overflow-hidden select-none">
       {/* Main Calculator Area */}
       <div className="flex-1 flex flex-col p-2 sm:p-4">
         {/* Life Points Display */}
-        <div className={`flex-1 grid gap-2 sm:gap-4 mb-3 sm:mb-6 ${
-          isLandscape ? 'grid-cols-2 grid-rows-1' : 'grid-rows-2 grid-cols-1'
-        }`}>
+        <div className="flex-1 grid gap-2 sm:gap-4 mb-3 sm:mb-6 grid-cols-1 grid-rows-2 sm:grid-cols-2 sm:grid-rows-1">
           {players.map(player => (
             <div key={player.id} className="bg-gray-800 rounded-lg p-3 sm:p-6 flex flex-col">
               <div className="flex items-center justify-between mb-2 sm:mb-4">
@@ -428,7 +442,7 @@ export default function Duel() {
                 className="flex-1 flex items-center justify-center cursor-pointer sm:cursor-default"
                 onClick={() => isMobile ? openMobileKeypad(player.id) : undefined}
               >
-                <div className="text-4xl sm:text-6xl lg:text-8xl font-bold text-center">
+                <div className="text-4xl sm:text-6xl lg:text-8xl font-bold font-mono tabular-nums leading-none text-center">
                   {player.lifePoints.toLocaleString()}
                 </div>
               </div>
@@ -452,9 +466,7 @@ export default function Duel() {
 
         {/* Timer and Operand */}
         <div className="bg-gray-800 rounded-lg p-3 sm:p-6 mb-3 sm:mb-6">
-          <div className={`flex justify-between items-center gap-4 sm:gap-0 ${
-            isLandscape ? 'flex-row' : 'flex-col sm:flex-row'
-          }`}>
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 flex-wrap sm:flex-nowrap">
             <div className="flex flex-col items-center gap-2 sm:gap-3">
               <div className="flex items-center gap-2 sm:gap-3">
                 <button
@@ -466,19 +478,24 @@ export default function Duel() {
                 >
                   {timer <= 0 ? 'TIME' : formatTime(timer)}
                 </button>
-                <button
-                  onClick={toggleDefaultTime}
-                  className={`px-2 sm:px-3 py-1 sm:py-2 rounded text-xs sm:text-sm font-bold transition-colors ${
-                    defaultTime === 30 
-                      ? 'bg-orange-600 hover:bg-orange-700' 
-                      : defaultTime === 50 
-                      ? 'bg-purple-600 hover:bg-purple-700' 
-                      : 'bg-gray-600 hover:bg-gray-700'
-                  }`}
-                  title={`Default: ${defaultTime} min (click to change)`}
-                >
-                  {defaultTime}m
-                </button>
+                {(() => {
+                  const next = getNextDefaultTime(defaultTime);
+                  return (
+                    <button
+                      onClick={() => changeDefaultTime(next)}
+                      className={`px-2 sm:px-3 py-1 sm:py-2 rounded text-xs sm:text-sm font-bold transition-colors ${
+                        next === 30
+                          ? 'bg-orange-600 hover:bg-orange-700'
+                          : next === 50
+                          ? 'bg-purple-600 hover:bg-purple-700'
+                          : 'bg-gray-600 hover:bg-gray-700'
+                      }`}
+                      title={`Default: ${defaultTime} min (click to toggle to ${next}:00)`}
+                    >
+                      {next}m
+                    </button>
+                  );
+                })()}
               </div>
               <div className="flex gap-2">
                 <button
@@ -506,11 +523,18 @@ export default function Duel() {
                 >
                   📖
                 </button>
+                <button
+                  onClick={() => setShowToolsModal(true)}
+                  className="sm:hidden px-2 py-1 rounded text-xs font-bold bg-gray-600 hover:bg-gray-700"
+                  title="More tools"
+                >
+                  ⋯
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="hidden sm:flex items-center gap-2 sm:gap-3">
               <div 
-                className="text-2xl sm:text-4xl font-mono bg-gray-700 px-4 sm:px-8 py-2 sm:py-4 rounded cursor-pointer sm:cursor-default"
+                className="text-2xl sm:text-4xl font-mono tabular-nums bg-gray-700 px-4 sm:px-8 py-2 sm:py-4 rounded cursor-pointer sm:cursor-default tracking-tight min-w-[6ch] text-center"
                 onClick={() => isMobile ? openMobileKeypad() : undefined}
               >
                 {operand}
@@ -566,7 +590,7 @@ export default function Duel() {
         </div>
 
         {/* Number Pad */}
-        <div className="hidden sm:grid grid-cols-5 gap-2 sm:gap-4">
+        <div className="hidden sm:grid grid-cols-6 gap-2 sm:gap-4">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(digit => (
             <button
               key={digit}
@@ -576,6 +600,20 @@ export default function Duel() {
               {digit}
             </button>
           ))}
+          <button
+            onClick={() => insertZeros(2)}
+            className="bg-gray-700 hover:bg-gray-600 p-4 sm:p-6 rounded text-xl sm:text-3xl font-bold touch-manipulation"
+            title="Append 00"
+          >
+            00
+          </button>
+          <button
+            onClick={() => insertZeros(3)}
+            className="bg-gray-700 hover:bg-gray-600 p-4 sm:p-6 rounded text-xl sm:text-3xl font-bold touch-manipulation"
+            title="Append 000"
+          >
+            000
+          </button>
         </div>
       </div>
 
@@ -1045,10 +1083,39 @@ export default function Duel() {
         </div>
       )}
 
+      {/* Tools Modal (compressed view helpers) */}
+      {showToolsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={() => setShowToolsModal(false)}>
+          <div className="bg-gray-800 rounded-lg w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-700">
+              <h3 className="text-xl font-bold">Tools</h3>
+              <button onClick={() => setShowToolsModal(false)} className="text-gray-400 hover:text-white text-2xl">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={resetLifePoints} className="bg-blue-600 hover:bg-blue-700 py-3 rounded font-bold">↻ Reset LP</button>
+                <button onClick={resetTimer} className="bg-blue-600 hover:bg-blue-700 py-3 rounded font-bold">⏱ Reset Timer</button>
+                <button onClick={rollDice} className="bg-purple-600 hover:bg-purple-700 py-3 rounded font-bold">⚀ Dice</button>
+                <button onClick={flipCoin} className="bg-yellow-600 hover:bg-yellow-700 py-3 rounded font-bold">○ Coin</button>
+              </div>
+              <button onClick={() => setIsLogOpen(true)} className="w-full bg-green-600 hover:bg-green-700 py-3 rounded font-bold">📖 Action Log</button>
+              <button onClick={toggleTimer} className={`w-full py-3 rounded font-bold ${isTimerRunning ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}>{isTimerRunning ? '⏸️ Pause Timer' : '▶️ Start Timer'}</button>
+              <button onClick={() => setShowToolsModal(false)} className="w-full bg-gray-600 hover:bg-gray-700 py-3 rounded font-bold">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Mobile Keypad Modal */}
       {showMobileKeypad && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center">
-          <div className="bg-gray-800 rounded-t-lg sm:rounded-lg w-full sm:w-auto sm:max-w-md p-6">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end sm:items-center justify-center"
+          onClick={closeMobileKeypad}
+        >
+          <div
+            className="bg-gray-800 rounded-t-lg sm:rounded-lg w-full sm:w-auto sm:max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold">
@@ -1102,6 +1169,22 @@ export default function Duel() {
                 className="bg-blue-600 hover:bg-blue-700 p-4 rounded text-lg font-bold"
               >
                 Clear
+              </button>
+            </div>
+
+            {/* Quick 00 / 000 */}
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <button
+                onClick={() => insertZeros(2)}
+                className="bg-gray-700 hover:bg-gray-600 p-4 rounded text-2xl font-bold"
+              >
+                00
+              </button>
+              <button
+                onClick={() => insertZeros(3)}
+                className="bg-gray-700 hover:bg-gray-600 p-4 rounded text-2xl font-bold"
+              >
+                000
               </button>
             </div>
 
@@ -1162,44 +1245,72 @@ export default function Duel() {
                     ○ Coin
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
                 <button
                   onClick={closeMobileKeypad}
-                  className="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded font-bold text-xl"
+                  className="w-full bg-gray-600 hover:bg-gray-700 py-3 rounded font-bold text-lg"
                 >
-                  Done
+                  Close
                 </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Apply to Player controls when no player selected */}
                 <div className="grid grid-cols-2 gap-4">
                   <button
-                    onClick={() => {
-                      rollDice();
-                      closeMobileKeypad();
-                    }}
+                    onClick={() => { updateLifePoints(1, parseInt(operand)); closeMobileKeypad(); }}
+                    className="bg-green-600 hover:bg-green-700 py-4 rounded font-bold text-lg"
+                  >
+                    + Player 1
+                  </button>
+                  <button
+                    onClick={() => { updateLifePoints(1, -parseInt(operand)); closeMobileKeypad(); }}
+                    className="bg-red-600 hover:bg-red-700 py-4 rounded font-bold text-lg"
+                  >
+                    − Player 1
+                  </button>
+                  <button
+                    onClick={() => { updateLifePoints(2, parseInt(operand)); closeMobileKeypad(); }}
+                    className="bg-green-600 hover:bg-green-700 py-4 rounded font-bold text-lg"
+                  >
+                    + Player 2
+                  </button>
+                  <button
+                    onClick={() => { updateLifePoints(2, -parseInt(operand)); closeMobileKeypad(); }}
+                    className="bg-red-600 hover:bg-red-700 py-4 rounded font-bold text-lg"
+                  >
+                    − Player 2
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => { rollDice(); closeMobileKeypad(); }}
                     className="bg-purple-600 hover:bg-purple-700 py-3 rounded font-bold text-lg"
                   >
                     ⚀ Dice
                   </button>
                   <button
-                    onClick={() => {
-                      flipCoin();
-                      closeMobileKeypad();
-                    }}
+                    onClick={() => { flipCoin(); closeMobileKeypad(); }}
                     className="bg-yellow-600 hover:bg-yellow-700 py-3 rounded font-bold text-lg"
                   >
                     ○ Coin
                   </button>
                 </div>
-                <button
-                  onClick={() => {
-                    resetLifePoints();
-                    closeMobileKeypad();
-                  }}
-                  className="w-full bg-gray-600 hover:bg-gray-700 py-3 rounded font-bold text-lg"
-                >
-                  ↻ Reset All Life Points
-                </button>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <button
+                    onClick={() => { resetLifePoints(); closeMobileKeypad(); }}
+                    className="bg-gray-600 hover:bg-gray-700 py-3 rounded font-bold text-lg"
+                  >
+                    ↻ Reset All
+                  </button>
+                  <button
+                    onClick={closeMobileKeypad}
+                    className="bg-blue-600 hover:bg-blue-700 py-3 rounded font-bold text-lg"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             )}
           </div>
