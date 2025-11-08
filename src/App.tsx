@@ -13,7 +13,7 @@ import Solitaire from "./pages/Solitaire";
 
 function AppRoutes() {
   const location = useLocation();
-  const showFloofLayout = !location.pathname.startsWith("/kanban") && !location.pathname.startsWith("/board") && !location.pathname.startsWith("/duel");
+  const showFloofLayout = !location.pathname.startsWith("/kanban") && !location.pathname.startsWith("/board") && !location.pathname.startsWith("/duel") && !location.pathname.startsWith("/solitaire");
   const isOrganizer = location.pathname.startsWith('/organizer');
 
   return (
@@ -28,7 +28,8 @@ function AppRoutes() {
         className={`flex-1 ${
           location.pathname.startsWith("/board") ||
           location.pathname.startsWith("/kanban") ||
-          location.pathname.startsWith("/duel")
+          location.pathname.startsWith("/duel") ||
+          location.pathname.startsWith("/solitaire")
             ? ""
             : "p-4"
         }`}

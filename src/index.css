@@ -17,9 +17,15 @@ html, body {
   background: #f5f7fa;
   min-height: 100vh;
   overflow-x: hidden; /* prevent page from growing wider than the viewport */
+  overflow-y: auto; /* allow vertical scroll but make it clear it's on html, not body */
+}
+
+html {
+  overflow-y: auto;
 }
 
 body {
+  overflow: hidden; /* body itself should not scroll - html does */
   font-family:
     "Inter Variable",
     ui-sans-serif,
@@ -100,4 +106,45 @@ body {
   .desktop-blur {
     backdrop-filter: blur(8px);
   }
+}
+
+/* Safe area support for mobile PWA */
+@supports (padding: max(0px)) {
+  .safe-area-inset-bottom {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Card flip animation */
+@keyframes card-flip {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(90deg);
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
+}
+
+.animate-card-flip {
+  animation: card-flip 0.45s ease-in-out both;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+@keyframes pop-in {
+  from {
+    transform: scale(0.88);
+    opacity: 0.85;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.22s ease-out both;
 }
