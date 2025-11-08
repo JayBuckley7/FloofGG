@@ -6,6 +6,8 @@ steps:
       - "build"
       - "--build-arg"
       - "VITE_CONVEX_URL=${_VITE_CONVEX_URL}"
+      - "--build-arg"
+      - "CONVEX_DEPLOY_KEY=${_CONVEX_DEPLOY_KEY}"
       - "-t"
       - "us-central1-docker.pkg.dev/$PROJECT_ID/kanban-board/${_SERVICE_NAME}:${_COMMIT_SHA}"
       - "-t"
@@ -49,6 +51,7 @@ steps:
 
 substitutions:
   _VITE_CONVEX_URL: ''
+  _CONVEX_DEPLOY_KEY: ''
   _SERVICE_NAME: 'kanban-board'
   _COMMIT_SHA: '${COMMIT_SHA}'
   _ENVIRONMENT: 'production'
