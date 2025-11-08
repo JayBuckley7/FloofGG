@@ -21,13 +21,16 @@ ARG CONVEX_DEPLOY_KEY
 
 # 5  Extract CONVEX_DEPLOYMENT from VITE_CONVEX_URL and generate Convex client types
 #    Convex URL format: https://deployment-name.convex.cloud or https://deployment-name.convex.site
-RUN if [ -n "$VITE_CONVEX_URL" ] && [ -n "$CONVEX_DEPLOY_KEY" ]; then \
+RUN if [ -n "${VITE_CONVEX_URL:-}" ] && [ -n "${CONVEX_DEPLOY_KEY:-}" ] && [ "${CONVEX_DEPLOY_KEY}" != "" ]; then \
       CONVEX_DEPLOYMENT=$(echo "$VITE_CONVEX_URL" | sed -E 's|https?://([^.]+)\..*|\1|'); \
       export CONVEX_DEPLOYMENT; \
-      export CONVEX_DEPLOY_KEY; \
+      export CONVEX_DEPLOY_KEY="${CONVEX_DEPLOY_KEY}"; \
+      echo "Running convex codegen for deployment: $CONVEX_DEPLOYMENT"; \
       npx --yes convex@latest codegen; \
     else \
       echo "Warning: VITE_CONVEX_URL or CONVEX_DEPLOY_KEY not set, skipping convex codegen"; \
+      echo "VITE_CONVEX_URL=${VITE_CONVEX_URL:-<empty>}"; \
+      echo "CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY:-<empty>}"; \
     fi
 
 # 6  Build the production bundle
