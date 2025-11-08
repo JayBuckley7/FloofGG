@@ -251,6 +251,7 @@ const Minesweeper = () => {
   const timerIntervalRef = useRef<number | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const touchStartRef = useRef<{ row: number; col: number; time: number } | null>(null);
+  const isProcessingFirstClickRef = useRef<boolean>(false);
 
   // Persist game state
   useEffect(() => {
@@ -265,6 +266,13 @@ const Minesweeper = () => {
       window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     } catch {}
   }, [settings]);
+
+  // Reset first click processing flag when game starts
+  useEffect(() => {
+    if (game.startTime !== null) {
+      isProcessingFirstClickRef.current = false;
+    }
+  }, [game.startTime]);
 
   // Timer - update every second when game is playing
   useEffect(() => {
@@ -334,11 +342,19 @@ const Minesweeper = () => {
     setShowNewGameConfirm(false);
     setShowWinAnimation(false);
     setCurrentTime(Date.now());
+    setPinchZoom(1); // Reset zoom on new game
+    isProcessingFirstClickRef.current = false; // Reset first click flag
   }, [getGameConfig]);
 
   const handleCellClick = useCallback(
     (row: number, col: number, isRightClick: boolean = false) => {
       if (game.gameStatus !== "playing") return;
+      
+      // Prevent multiple rapid clicks on first click
+      if (game.startTime === null && isProcessingFirstClickRef.current) {
+        return;
+      }
+      
       if (isRightClick) {
         // Toggle flag
         setGame((prev) => {
@@ -382,27 +398,25 @@ const Minesweeper = () => {
         
         // First click - place mines (excluding this cell if firstClickSafe)
         if (startTime === null) {
-          if (settings.firstClickSafe && cell.isMine) {
-            // Recreate board without mine at this position
-            newBoard = placeMines(
-              createEmptyBoard(prev.width, prev.height),
-              prev.width,
-              prev.height,
-              prev.mines,
-              row,
-              col
-            );
-          } else if (!cell.isMine) {
-            // Place mines normally
-            newBoard = placeMines(
-              createEmptyBoard(prev.width, prev.height),
-              prev.width,
-              prev.height,
-              prev.mines,
-              -1,
-              -1
-            );
+          // Prevent concurrent first clicks
+          if (isProcessingFirstClickRef.current) {
+            return prev;
           }
+          isProcessingFirstClickRef.current = true;
+          
+          // Always place mines on first click
+          // If firstClickSafe is enabled, exclude the clicked cell from mine placement
+          const excludeRow = settings.firstClickSafe ? row : -1;
+          const excludeCol = settings.firstClickSafe ? col : -1;
+          
+          newBoard = placeMines(
+            createEmptyBoard(prev.width, prev.height),
+            prev.width,
+            prev.height,
+            prev.mines,
+            excludeRow,
+            excludeCol
+          );
           startTime = Date.now();
         }
         
@@ -497,15 +511,15 @@ const Minesweeper = () => {
   const getCellColor = (cell: Cell) => {
     if (cell.state === "revealed") {
       const colors = [
-        "",
-        "text-blue-600",
-        "text-green-600",
-        "text-red-600",
-        "text-purple-600",
-        "text-yellow-600",
-        "text-pink-600",
-        "text-gray-800",
-        "text-black",
+        "", // 0 - no color
+        "text-blue-600", // 1 - blue
+        "text-green-600", // 2 - green
+        "text-red-600", // 3 - red
+        "text-purple-600", // 4 - purple
+        "text-red-800", // 5 - brown (dark red)
+        "text-teal-600", // 6 - teal
+        "text-black", // 7 - black
+        "text-black", // 8
       ];
       return colors[cell.adjacentMines] || "";
     }
@@ -514,6 +528,10 @@ const Minesweeper = () => {
 
   const boardContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+  const [pinchZoom, setPinchZoom] = useState(1);
+  const [pinchStartDistance, setPinchStartDistance] = useState<number | null>(null);
+  const [pinchStartZoom, setPinchStartZoom] = useState(1);
+  const touchHandledRef = useRef<{ [key: string]: boolean }>({});
 
   // Measure container size with ResizeObserver (better than window.innerWidth on mobile)
   useEffect(() => {
@@ -548,23 +566,59 @@ const Minesweeper = () => {
     const availableHeight = containerSize.height > 0 ? containerSize.height - 8 : (typeof window !== "undefined" ? window.innerHeight - 280 : 600);
     
     if (boardWidth <= availableWidth && boardHeight <= availableHeight) {
-      return 1;
+      return 1 * pinchZoom;
     }
     
     const scaleX = availableWidth / boardWidth;
     const scaleY = availableHeight / boardHeight;
     // Allow slight scaling down but prefer larger cells
-    return Math.min(scaleX, scaleY, 1);
-  }, [game.width, game.height, cellSize, containerSize]);
+    return Math.min(scaleX, scaleY, 1) * pinchZoom;
+  }, [game.width, game.height, cellSize, containerSize, pinchZoom]);
 
   const remainingMines = game.mines - game.flagsPlaced;
+
+  // Pinch zoom handlers
+  const getDistance = (touches: TouchList): number => {
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const distance = getDistance(e.touches);
+      setPinchStartDistance(distance);
+      setPinchStartZoom(pinchZoom);
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, [pinchZoom]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchStartDistance !== null) {
+      const distance = getDistance(e.touches);
+      const scale = distance / pinchStartDistance;
+      const newZoom = Math.max(0.5, Math.min(3, pinchStartZoom * scale));
+      setPinchZoom(newZoom);
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, [pinchStartDistance, pinchStartZoom]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      setPinchStartDistance(null);
+    }
+  }, []);
 
   return (
     <div
       className="fixed inset-0 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white overflow-auto"
       style={{
         height: "100dvh",
-        touchAction: "manipulation",
+        touchAction: "pan-x pan-y pinch-zoom",
         paddingTop: "env(safe-area-inset-top)",
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
@@ -880,6 +934,10 @@ const Minesweeper = () => {
             "flex-1 overflow-hidden px-3 flex items-center justify-center",
             game.startTime === null || game.gameStatus !== "playing" ? "pb-20" : "pb-2"
           )}
+          style={{ touchAction: "pan-x pan-y pinch-zoom" }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <div
             className="inline-grid gap-1.5 mx-auto"
@@ -895,36 +953,67 @@ const Minesweeper = () => {
                 <button
                   key={`${rowIndex}-${colIndex}`}
                   type="button"
-                  onClick={() => handleCellClick(rowIndex, colIndex, false)}
+                  onClick={(e) => {
+                    // Prevent click if we already handled it via touch
+                    const cellKey = `${rowIndex}-${colIndex}`;
+                    if (touchHandledRef.current[cellKey]) {
+                      e.preventDefault();
+                      delete touchHandledRef.current[cellKey];
+                      return;
+                    }
+                    handleCellClick(rowIndex, colIndex, false);
+                  }}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     handleCellClick(rowIndex, colIndex, true);
                   }}
-                  onTouchStart={() => {
+                  onTouchStart={(e) => {
+                    // Don't handle single touch if there are multiple touches (pinch zoom)
+                    if (e.touches.length > 1) {
+                      e.stopPropagation(); // Stop propagation to allow container to handle pinch
+                      return;
+                    }
                     touchStartRef.current = { row: rowIndex, col: colIndex, time: Date.now() };
                     handleCellLongPress(rowIndex, colIndex);
                   }}
-                  onTouchEnd={() => {
+                  onTouchEnd={(e) => {
+                    // Don't handle touch end if there are still multiple touches (pinch zoom)
+                    if (e.touches.length > 0) {
+                      e.stopPropagation(); // Stop propagation to allow container to handle pinch
+                      return;
+                    }
                     cancelLongPress();
                     if (touchStartRef.current) {
                       const { row, col, time } = touchStartRef.current;
                       const duration = Date.now() - time;
                       if (duration < 500 && row === rowIndex && col === colIndex) {
+                        // Mark that we handled this via touch to prevent click event
+                        const cellKey = `${rowIndex}-${colIndex}`;
+                        touchHandledRef.current[cellKey] = true;
                         handleCellClick(rowIndex, colIndex, false);
+                        // Clear the flag after a short delay to allow click event to be prevented
+                        setTimeout(() => {
+                          delete touchHandledRef.current[cellKey];
+                        }, 300);
                       }
                     }
                     touchStartRef.current = null;
                   }}
-                  onTouchMove={() => {
+                  onTouchMove={(e) => {
+                    // Don't cancel long press if there are multiple touches (pinch zoom)
+                    if (e.touches.length > 1) {
+                      e.stopPropagation(); // Stop propagation to allow container to handle pinch
+                      return;
+                    }
                     cancelLongPress();
                   }}
                   className={clsx(
                     "flex items-center justify-center font-bold rounded transition-all active:scale-95",
                     cell.state === "revealed"
                       ? clsx(
-                          "bg-slate-200 text-slate-900",
+                          "bg-slate-200",
                           cell.isMine && "bg-red-500",
-                          getCellColor(cell)
+                          cell.adjacentMines === 0 ? "text-slate-900" : getCellColor(cell)
                         )
                       : "bg-slate-600 hover:bg-slate-500 active:bg-slate-400",
                     cell.state === "flagged" && "bg-yellow-600",
