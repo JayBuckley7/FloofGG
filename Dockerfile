@@ -23,14 +23,15 @@ ARG CONVEX_DEPLOY_KEY
 #    Convex URL format: https://deployment-name.convex.cloud or https://deployment-name.convex.site
 RUN if [ -n "${VITE_CONVEX_URL:-}" ] && [ -n "${CONVEX_DEPLOY_KEY:-}" ] && [ "${CONVEX_DEPLOY_KEY}" != "" ]; then \
       CONVEX_DEPLOYMENT=$(echo "$VITE_CONVEX_URL" | sed -E 's|https?://([^.]+)\..*|\1|'); \
-      export CONVEX_DEPLOYMENT; \
+      export CONVEX_DEPLOYMENT="${CONVEX_DEPLOYMENT}"; \
       export CONVEX_DEPLOY_KEY="${CONVEX_DEPLOY_KEY}"; \
-      echo "Running convex codegen for deployment: $CONVEX_DEPLOYMENT"; \
-      npx --yes convex@latest codegen; \
+      echo "Running convex codegen for deployment: ${CONVEX_DEPLOYMENT}"; \
+      echo "CONVEX_DEPLOY_KEY length: $(echo -n "${CONVEX_DEPLOY_KEY}" | wc -c)"; \
+      CONVEX_DEPLOY_KEY="${CONVEX_DEPLOY_KEY}" CONVEX_DEPLOYMENT="${CONVEX_DEPLOYMENT}" npx --yes convex@latest codegen; \
     else \
       echo "Warning: VITE_CONVEX_URL or CONVEX_DEPLOY_KEY not set, skipping convex codegen"; \
       echo "VITE_CONVEX_URL=${VITE_CONVEX_URL:-<empty>}"; \
-      echo "CONVEX_DEPLOY_KEY=${CONVEX_DEPLOY_KEY:-<empty>}"; \
+      echo "CONVEX_DEPLOY_KEY is set: $([ -n "${CONVEX_DEPLOY_KEY:-}" ] && echo yes || echo no)"; \
     fi
 
 # 6  Build the production bundle
