@@ -21,7 +21,12 @@ export default function Navbar() {
         </li>
         <li>
           <Link to="/kanban" className="hover:underline">
-                            Kanban
+            Kanban
+          </Link>
+        </li>
+        <li>
+          <Link to="/solitaire" className="hover:underline">
+            Solitaire
           </Link>
         </li>
       </ul>

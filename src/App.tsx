@@ -9,6 +9,7 @@ import Duel from "./pages/Duel";
 import { DataInspector } from "./pages/DataInspector";
 import Kanban from "./pages/Kanban";
 import PublicBoard from "./pages/PublicBoard";
+import Solitaire from "./pages/Solitaire";
 
 function AppRoutes() {
   const location = useLocation();
@@ -39,6 +40,7 @@ function AppRoutes() {
           <Route path="/board/:boardId" element={<PublicBoard />} />
           <Route path="/kanban/*" element={<Kanban />} />
           <Route path="/inspect" element={<DataInspector />} />
+          <Route path="/solitaire" element={<Solitaire />} />
         </Routes>
       </main>
       {showFloofLayout && <Footer />}
