@@ -182,6 +182,39 @@ const cardSymbols: Record<Suit, string> = {
   spades: "\u263E", // Moon symbol (dark, mushroom)
 };
 
+// Helper function to create a card preview element from card data
+const createCardPreviewElement = (card: CardData, cardWidth: number): HTMLElement => {
+  const cardEl = document.createElement('div');
+  cardEl.className = 'relative aspect-[2.5/3.5] rounded-xl shadow-lg bg-white border border-slate-200';
+  cardEl.style.width = `${cardWidth}px`;
+  cardEl.style.position = 'fixed';
+  cardEl.style.pointerEvents = 'none';
+  
+  const color = card.suit === 'hearts' || card.suit === 'diamonds' ? 'red' : 'black';
+  const colorClass = color === 'red' ? 'text-red-600' : 'text-slate-800';
+  const symbolColor = color === 'red' ? 'text-red-500' : 'text-slate-700';
+  
+  cardEl.innerHTML = `
+    <div class="flex h-full flex-col justify-between p-2">
+      <div class="flex justify-between items-start">
+        <div class="font-bold leading-tight text-xs ${colorClass}">
+          ${card.rank}
+        </div>
+        <div class="text-xs leading-none ${symbolColor}" aria-hidden>
+          ${cardSymbols[card.suit as Suit]}
+        </div>
+      </div>
+      <div class="flex justify-center text-3xl leading-none" aria-hidden>
+        <span class="${symbolColor}">
+          ${cardSymbols[card.suit as Suit]}
+        </span>
+      </div>
+    </div>
+  `;
+  
+  return cardEl;
+};
+
 // ✨ Compute stack spacing from actual card width.
 // Keeps columns readable on small screens.
 const getTableauOffset = (length: number, cardWidth: number) => {
@@ -317,14 +350,27 @@ const Card = ({
     >
       {card.faceUp ? (
         <div className="flex h-full flex-col justify-between p-2">
-          <div
-            className={clsx(
-              "font-bold leading-tight text-base",
-              card.color === "red" ? "text-red-600" : "text-slate-800"
-            )}
-          >
-            {card.rank}
+          {/* Top corners: rank (left) and suit (right) */}
+          <div className="flex justify-between items-start">
+            <div
+              className={clsx(
+                "font-bold leading-tight text-xs",
+                card.color === "red" ? "text-red-600" : "text-slate-800"
+              )}
+            >
+              {card.rank}
+            </div>
+            <div
+              className={clsx(
+                "text-xs leading-none",
+                card.color === "red" ? "text-red-500" : "text-slate-700"
+              )}
+              aria-hidden
+            >
+              {cardSymbols[card.suit]}
+            </div>
           </div>
+          {/* Large center suit symbol */}
           <div className="flex justify-center text-3xl leading-none" aria-hidden>
             <span className={card.color === "red" ? "text-red-500" : "text-slate-700"}>
               {cardSymbols[card.suit]}
@@ -636,14 +682,34 @@ const Solitaire = () => {
   const handleDragEndWrapper = useCallback(
     (result: { source: any; destination: any }) => {
       setIsDragging(null);
-      // Remove manual transforms
+      // Remove manual transforms and styles from child cards
       const draggedCards = document.querySelectorAll('[data-rbd-draggable-id]');
       draggedCards.forEach((card) => {
         const element = card as HTMLElement;
         if (element.style.zIndex && parseInt(element.style.zIndex) > 5000) {
+          element.style.position = '';
+          element.style.left = '';
+          element.style.top = '';
           element.style.zIndex = '';
+          element.style.pointerEvents = '';
+          element.style.width = '';
+          element.style.opacity = '';
+          element.style.visibility = '';
+          element.style.transform = '';
+          element.style.display = '';
+          element.style.maxWidth = '';
+          element.style.maxHeight = '';
         }
       });
+      
+      // Remove preview child card elements
+      const previewCards = document.querySelectorAll('[data-child-card-preview]');
+      previewCards.forEach((preview) => {
+        preview.remove();
+      });
+      
+      // Clear stored references
+      cardElementsRef.current.clear();
       
       const { source, destination } = result;
 
@@ -1155,11 +1221,17 @@ const Solitaire = () => {
   );
 
   const [isDragging, setIsDragging] = useState<any>(null);
+  const cardElementsRef = useRef<Map<string, HTMLElement>>(new Map());
 
   const handleMultipleDrag = useCallback(() => {
-    if (!isDragging) return;
+    if (!isDragging) {
+      console.log('handleMultipleDrag: no isDragging');
+      return;
+    }
     const source = isDragging.source || isDragging;
     const sParts = source.droppableId.split('-');
+    
+    console.log('handleMultipleDrag called', { source, sParts, isDragging });
     
     if (sParts[0] === 'col') {
       const colIdx = parseInt(sParts[1]);
@@ -1167,41 +1239,338 @@ const Solitaire = () => {
       const column = game.tableau[colIdx];
       
       const draggedCards = column.slice(startIdx);
-      const draggedCard = document.querySelector(`[data-rbd-draggable-id="${draggedCards[0].id}"]`) as HTMLElement;
-      if (!draggedCard) return;
+      console.log('Dragging cards:', draggedCards.map(c => c.rank), 'from column', colIdx, 'starting at index', startIdx);
+      if (draggedCards.length <= 1) {
+        console.log('Only one card, nothing to do');
+        return; // Only one card, nothing to do
+      }
       
-      const translate = draggedCard.style.transform.match(/translate\(((-)?\d*.\d*)px, ((-)?\d*.\d*)px\)/);
-      if (!translate) return;
+      // react-beautiful-dnd creates a preview in a portal, so we need to find it differently
+      // Look for elements that are being dragged (have high z-index, transforms, or are fixed positioned)
+      // Try multiple strategies to find the dragged element
+      let draggedCardElement: HTMLElement | null = null;
       
-      const x = parseFloat(translate[1]);
-      const y = parseFloat(translate[3]);
+      // Strategy 1: Look for elements with the draggable-id attribute
+      const allDraggedElements = document.querySelectorAll(`[data-rbd-draggable-id="${draggedCards[0].id}"]`);
+      console.log(`Found ${allDraggedElements.length} elements with data-rbd-draggable-id for ${draggedCards[0].id}`);
+      
+      for (const elem of Array.from(allDraggedElements)) {
+        const el = elem as HTMLElement;
+        const style = window.getComputedStyle(el);
+        const transform = style.transform;
+        const position = style.position;
+        const zIndex = parseInt(style.zIndex) || 0;
+        const rect = el.getBoundingClientRect();
+        
+        // The preview element will have a transform, be fixed/absolute, or have high z-index
+        if ((transform !== 'none' || position === 'fixed' || position === 'absolute' || zIndex > 1000) && rect.width > 0 && rect.height > 0) {
+          draggedCardElement = el;
+          console.log('Found dragged card element (strategy 1)', { transform, position, zIndex, rect });
+          break;
+        }
+      }
+      
+      // Strategy 2: Look for elements in portals or with high z-index that might be the preview
+      if (!draggedCardElement) {
+        // Look for elements with very high z-index (react-beautiful-dnd uses high z-index for preview)
+        const highZIndexElements = Array.from(document.querySelectorAll('*')).filter((el) => {
+          const style = window.getComputedStyle(el);
+          const zIndex = parseInt(style.zIndex) || 0;
+          return zIndex > 2000 && style.position !== 'static';
+        }) as HTMLElement[];
+        
+        // Find the one that matches our card dimensions approximately
+        for (const el of highZIndexElements) {
+          const rect = el.getBoundingClientRect();
+          // Check if it's roughly card-sized (within reasonable bounds)
+          if (rect.width > cardWidth * 0.5 && rect.width < cardWidth * 2 && rect.height > 0) {
+            draggedCardElement = el;
+            console.log('Found dragged card element (strategy 2 - high z-index)', { rect, zIndex: window.getComputedStyle(el).zIndex });
+            break;
+          }
+        }
+      }
+      
+      // Strategy 3: Look for fixed/absolute elements with high z-index that are card-sized
+      if (!draggedCardElement) {
+        // Find all fixed/absolute positioned elements with high z-index
+        const allFixedElements = Array.from(document.querySelectorAll('*')).filter((el) => {
+          const style = window.getComputedStyle(el);
+          const zIndex = parseInt(style.zIndex) || 0;
+          return (style.position === 'fixed' || style.position === 'absolute') && zIndex > 1000;
+        }) as HTMLElement[];
+        
+        // Get the one with the highest z-index that's card-sized and visible
+        const sortedByZ = allFixedElements
+          .map(el => ({ 
+            el, 
+            zIndex: parseInt(window.getComputedStyle(el).zIndex) || 0, 
+            rect: el.getBoundingClientRect() 
+          }))
+          .filter(({ rect }) => {
+            // Filter to card-sized elements
+            return rect.width > cardWidth * 0.5 && rect.width < cardWidth * 2 && rect.height > 0;
+          })
+          .sort((a, b) => b.zIndex - a.zIndex);
+        
+        if (sortedByZ.length > 0) {
+          draggedCardElement = sortedByZ[0].el;
+          console.log('Found dragged card element (strategy 3 - highest z-index)', { zIndex: sortedByZ[0].zIndex, rect: sortedByZ[0].rect });
+        }
+      }
+      
+      if (!draggedCardElement) {
+        console.warn('Could not find dragged card element with any strategy!');
+        return;
+      }
+      
+      // Get the actual position of the dragged card
+      const draggedRect = draggedCardElement.getBoundingClientRect();
       const offset = getTableauOffset(column.length, cardWidth);
       
+      // Position child cards relative to the dragged card
+      console.log(`Positioning ${draggedCards.length - 1} child cards`);
       for (let i = 1; i < draggedCards.length; i++) {
-        const card = document.querySelector(`[data-rbd-draggable-id="${draggedCards[i].id}"]`) as HTMLElement;
-        if (card) {
-          card.style.transform = `translate(${x}px, ${y + offset * i}px)`;
-          card.style.zIndex = `${i + 5000}`;
+        // Find all elements with this card's ID (including hidden ones)
+        const allChildElements = document.querySelectorAll(`[data-rbd-draggable-id="${draggedCards[i].id}"]`);
+        console.log(`Found ${allChildElements.length} elements for child card ${draggedCards[i].id} (${draggedCards[i].rank})`);
+        
+        let cardElement: HTMLElement | null = null;
+        
+        // Strategy 0: Check if we already created a preview for this card
+        const existingPreview = document.querySelector(`[data-child-card-preview="${draggedCards[i].id}"]`) as HTMLElement;
+        if (existingPreview) {
+          cardElement = existingPreview;
+          console.log(`Found existing preview for child card ${i}`);
+        }
+        
+        // Strategy 1: Check if we're already controlling this element
+        if (!cardElement) {
+          for (const elem of Array.from(allChildElements)) {
+            const el = elem as HTMLElement;
+            if (el.style.position === 'fixed' && parseInt(el.style.zIndex || '0') > 5000) {
+              cardElement = el;
+              console.log('Found child card element we\'re already controlling');
+              break;
+            }
+          }
+        }
+        
+        // Strategy 1.5: Use stored reference from drag start (use it directly, don't clone)
+        if (!cardElement) {
+          const storedElement = cardElementsRef.current.get(draggedCards[i].id);
+          if (storedElement) {
+            // Use the stored element directly - make it visible and position it
+            cardElement = storedElement;
+            console.log('Using stored reference to child card element directly');
+          }
+        }
+        
+        // Strategy 2: Find the child card by position in the column (before react-beautiful-dnd hides it)
+        if (!cardElement) {
+          const columnContainer = document.querySelector(`[data-rbd-droppable-id="col-${colIdx}"]`);
+          if (columnContainer) {
+            // Get all draggable elements in the column
+            const allCardsInColumn = Array.from(columnContainer.querySelectorAll('[data-rbd-draggable-id]'));
+            console.log(`Found ${allCardsInColumn.length} cards in column, looking for child card ${draggedCards[i].id} (${draggedCards[i].rank})`);
+            
+            // First try to find it by matching the card ID
+            const cardInColumn = allCardsInColumn.find((el) => {
+              const elId = el.getAttribute('data-rbd-draggable-id');
+              return elId === draggedCards[i].id;
+            }) as HTMLElement;
+            
+            if (cardInColumn) {
+              cardElement = cardInColumn;
+              console.log(`Found child card element in column by ID`);
+            } else {
+              // Try by index - after dragging starts, react-beautiful-dnd removes the dragged card
+              // So the child card shifts up: if we dragged from index 4, child at index 5 becomes index 4
+              // For child card i, it should be at startIdx (since the dragged card was removed)
+              const targetIndex = startIdx;
+              if (targetIndex < allCardsInColumn.length) {
+                cardElement = allCardsInColumn[targetIndex] as HTMLElement;
+                console.log(`Found child card element by index ${targetIndex} in column (after drag removal)`);
+              }
+            }
+          }
+        }
+        
+        // If we still can't find it, create a preview element from card data
+        if (!cardElement) {
+          console.log(`Creating preview element for child card ${i} (${draggedCards[i].rank})`);
+          // Check if we already created a preview for this card
+          const existingPreview = document.querySelector(`[data-child-card-preview="${draggedCards[i].id}"]`) as HTMLElement;
+          
+          if (existingPreview) {
+            cardElement = existingPreview;
+            console.log(`Reusing existing preview for child card ${i}`);
+          } else {
+            // Create a new preview element from the card data
+            const previewEl = createCardPreviewElement(draggedCards[i], cardWidth);
+            previewEl.setAttribute('data-child-card-preview', draggedCards[i].id);
+            previewEl.style.zIndex = `${5000 + i}`;
+            document.body.appendChild(previewEl);
+            cardElement = previewEl;
+            console.log(`Created preview element for child card ${i} (${draggedCards[i].rank})`);
+          }
+        }
+        
+        if (cardElement) {
+          const childOffset = offset * i;
+          
+          console.log(`Positioning child card ${i} (${draggedCards[i].rank}) at`, {
+            left: draggedRect.left,
+            top: draggedRect.top + childOffset,
+            offset: childOffset
+          });
+          
+          // Apply fixed positioning to the element
+          cardElement.style.position = 'fixed';
+          cardElement.style.left = `${draggedRect.left}px`;
+          cardElement.style.top = `${draggedRect.top + childOffset}px`;
+          cardElement.style.zIndex = `${5000 + i}`;
+          cardElement.style.pointerEvents = 'none';
+          cardElement.style.width = `${cardWidth}px`;
+          cardElement.style.opacity = '1';
+          cardElement.style.visibility = 'visible';
+          cardElement.style.transform = 'none';
+          cardElement.style.display = '';
+          // Remove any max-width or height constraints that might hide it
+          cardElement.style.maxWidth = 'none';
+          cardElement.style.maxHeight = 'none';
+        } else {
+          console.warn(`Could not find or create element for child card ${i} (${draggedCards[i].rank})`);
         }
       }
     }
   }, [isDragging, game.tableau, cardWidth]);
 
   const handleDragStart = useCallback((result: { source: any; draggableId: string }) => {
+    console.log('handleDragStart called', result);
     setIsDragging(result);
-  }, []);
+    
+    // Store references to card elements before react-beautiful-dnd hides them
+    // Use setTimeout to ensure elements are still queryable
+    setTimeout(() => {
+      const source = result.source || result;
+      const sParts = source.droppableId.split('-');
+      
+      if (sParts[0] === 'col') {
+        const colIdx = parseInt(sParts[1]);
+        const startIdx = source.index;
+        const column = game.tableau[colIdx];
+        const draggedCards = column.slice(startIdx);
+        
+        // Store references to all cards that will be dragged
+        cardElementsRef.current.clear();
+        for (let i = 0; i < draggedCards.length; i++) {
+          const cardId = draggedCards[i].id;
+          const cardRank = draggedCards[i].rank;
+          // Try multiple ways to find the element
+          let element = document.querySelector(`[data-rbd-draggable-id="${cardId}"]`) as HTMLElement;
+          
+          // If not found, try finding it in the column container
+          if (!element) {
+            const columnContainer = document.querySelector(`[data-rbd-droppable-id="col-${colIdx}"]`);
+            if (columnContainer) {
+              element = columnContainer.querySelector(`[data-rbd-draggable-id="${cardId}"]`) as HTMLElement;
+            }
+          }
+          
+          if (element) {
+            cardElementsRef.current.set(cardId, element);
+            // Verify what we're storing - check if it contains the card rank
+            const cardContent = element.textContent || '';
+            console.log(`Stored reference to card ${cardId} (${cardRank}) - element text: "${cardContent.substring(0, 50)}"`);
+          } else {
+            console.warn(`Could not find element for card ${cardId} (${cardRank})`);
+          }
+        }
+      }
+    }, 0);
+  }, [game.tableau]);
 
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('touchmove', handleMultipleDrag);
-      window.addEventListener('mousemove', handleMultipleDrag);
-    } else {
-      window.removeEventListener('touchmove', handleMultipleDrag);
-      window.removeEventListener('mousemove', handleMultipleDrag);
+    console.log('useEffect for isDragging:', isDragging);
+    if (!isDragging) {
+      console.log('Cleaning up - no drag in progress');
+      // Clean up any manual transforms after drag ends
+      const draggedCards = document.querySelectorAll('[data-rbd-draggable-id]');
+      draggedCards.forEach((card) => {
+        const element = card as HTMLElement;
+        if (element.style.zIndex && parseInt(element.style.zIndex) > 5000) {
+          element.style.position = '';
+          element.style.left = '';
+          element.style.top = '';
+          element.style.zIndex = '';
+          element.style.pointerEvents = '';
+          element.style.width = '';
+          element.style.opacity = '';
+          element.style.visibility = '';
+          element.style.transform = '';
+          element.style.display = '';
+          element.style.maxWidth = '';
+          element.style.maxHeight = '';
+        }
+      });
+      
+      // Remove preview child card elements
+      const previewCards = document.querySelectorAll('[data-child-card-preview]');
+      previewCards.forEach((preview) => {
+        preview.remove();
+      });
+      
+      // Clear stored references
+      cardElementsRef.current.clear();
+      return;
     }
+
+    console.log('Starting animation loop for drag');
+    let rafId: number | null = null;
+    const updatePositions = () => {
+      handleMultipleDrag();
+      rafId = requestAnimationFrame(updatePositions);
+    };
+    
+    // Small delay to ensure react-beautiful-dnd has set up the drag preview
+    setTimeout(() => {
+      console.log('Starting requestAnimationFrame loop');
+      rafId = requestAnimationFrame(updatePositions);
+    }, 10);
+    
     return () => {
-      window.removeEventListener('touchmove', handleMultipleDrag);
-      window.removeEventListener('mousemove', handleMultipleDrag);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+      // Clean up styles
+      const draggedCards = document.querySelectorAll('[data-rbd-draggable-id]');
+      draggedCards.forEach((card) => {
+        const element = card as HTMLElement;
+        if (element.style.zIndex && parseInt(element.style.zIndex) > 5000) {
+          element.style.position = '';
+          element.style.left = '';
+          element.style.top = '';
+          element.style.zIndex = '';
+          element.style.pointerEvents = '';
+          element.style.width = '';
+          element.style.opacity = '';
+          element.style.visibility = '';
+          element.style.transform = '';
+          element.style.display = '';
+          element.style.maxWidth = '';
+          element.style.maxHeight = '';
+        }
+      });
+      
+      // Remove preview child card elements
+      const previewCards = document.querySelectorAll('[data-child-card-preview]');
+      previewCards.forEach((preview) => {
+        preview.remove();
+      });
+      
+      // Clear stored references
+      cardElementsRef.current.clear();
     };
   }, [isDragging, handleMultipleDrag]);
 
@@ -1226,17 +1595,10 @@ const Solitaire = () => {
       onDragEnd={handleDragEndWrapper}
       onDragStart={handleDragStart}
       onDragUpdate={() => {
-        // Clean up any manual transforms after drag update
-        const draggedCards = document.querySelectorAll('[data-rbd-draggable-id]');
-        draggedCards.forEach((card) => {
-          const element = card as HTMLElement;
-          if (element.style.zIndex && parseInt(element.style.zIndex) > 5000) {
-            // Reset z-index after drag
-            setTimeout(() => {
-              element.style.zIndex = '';
-            }, 0);
-          }
-        });
+        // Update child card positions during drag
+        if (isDragging) {
+          handleMultipleDrag();
+        }
       }}
       // Suppress scroll container warnings
       enableDefaultSensors={true}
