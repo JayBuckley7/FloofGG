@@ -978,50 +978,6 @@ const Solitaire = () => {
     if (moved) resetSelection();
   }, [resetSelection, updateGame]);
 
-  const simulateWin = useCallback(() => {
-    updateGame((draft) => {
-      // Collect all cards
-      const allCards: CardData[] = [];
-      
-      // Get all cards from tableau
-      draft.tableau.forEach(col => {
-        col.forEach(card => {
-          allCards.push({ ...card, faceUp: true });
-        });
-      });
-      
-      // Get all cards from waste
-      draft.waste.forEach(card => {
-        allCards.push({ ...card, faceUp: true });
-      });
-      
-      // Get all cards from stock
-      draft.stock.forEach(card => {
-        allCards.push({ ...card, faceUp: true });
-      });
-      
-      // Sort cards by suit and rank
-      const sortedCards: CardData[][] = [[], [], [], []]; // One array per suit
-      allCards.forEach(card => {
-        const suitIndex = suits.indexOf(card.suit);
-        sortedCards[suitIndex].push(card);
-      });
-      
-      // Sort each suit by rank (A, 2, 3, ..., K)
-      sortedCards.forEach(suitCards => {
-        suitCards.sort((a, b) => a.value - b.value);
-      });
-      
-      // Move all cards to foundations
-      draft.foundations = sortedCards;
-      draft.tableau = [[], [], [], [], [], [], []];
-      draft.waste = [];
-      draft.stock = [];
-      
-      return { changed: true, state: draft };
-    });
-  }, [updateGame]);
-
   const undo = useCallback(() => {
     setHistory((prev) => {
       if (!prev.length) return prev;
@@ -1194,14 +1150,6 @@ const Solitaire = () => {
         className="rounded-full bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950 shadow-md transition hover:bg-amber-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
       >
         Auto Play
-      </button>
-      <button
-        type="button"
-        onClick={simulateWin}
-        className="rounded-full bg-pink-500 px-3 py-2 text-white shadow-md transition hover:bg-pink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-white text-xs font-semibold"
-        title="Simulate Win"
-      >
-        🎉
       </button>
     </div>
   );
@@ -1833,14 +1781,6 @@ const Solitaire = () => {
                 aria-label="Settings"
               >
                 <Settings className="w-5 h-5 text-white" />
-              </button>
-              <button
-                type="button"
-                onClick={simulateWin}
-                className="rounded-xl bg-pink-500 px-3 py-3 text-white shadow-lg active:scale-95 transition-transform hover:bg-pink-600 text-xs font-semibold"
-                title="Simulate Win"
-              >
-                🎉
               </button>
             </div>
             {message && (

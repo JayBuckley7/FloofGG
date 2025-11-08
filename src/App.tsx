@@ -10,14 +10,15 @@ import { DataInspector } from "./pages/DataInspector";
 import Kanban from "./pages/Kanban";
 import PublicBoard from "./pages/PublicBoard";
 import Solitaire from "./pages/Solitaire";
+import Minesweeper from "./pages/Minesweeper";
 
 function AppRoutes() {
   const location = useLocation();
-  const showFloofLayout = !location.pathname.startsWith("/kanban") && !location.pathname.startsWith("/board") && !location.pathname.startsWith("/duel") && !location.pathname.startsWith("/solitaire");
+  const showFloofLayout = !location.pathname.startsWith("/kanban") && !location.pathname.startsWith("/board") && !location.pathname.startsWith("/duel") && !location.pathname.startsWith("/solitaire") && !location.pathname.startsWith("/minesweeper");
   const isOrganizer = location.pathname.startsWith('/organizer');
 
   return (
-    <div className={`min-h-screen flex flex-col ${location.pathname.startsWith("/board") || location.pathname.startsWith("/kanban") || location.pathname.startsWith("/duel") ? "no-flash" : "bg-gray-50"}`}>
+    <div className={`min-h-screen flex flex-col ${location.pathname.startsWith("/board") || location.pathname.startsWith("/kanban") || location.pathname.startsWith("/duel") || location.pathname.startsWith("/solitaire") || location.pathname.startsWith("/minesweeper") ? "no-flash" : "bg-gray-50"}`}>
       {!isOrganizer && showFloofLayout && (
         <>
           <Header />
@@ -29,7 +30,8 @@ function AppRoutes() {
           location.pathname.startsWith("/board") ||
           location.pathname.startsWith("/kanban") ||
           location.pathname.startsWith("/duel") ||
-          location.pathname.startsWith("/solitaire")
+          location.pathname.startsWith("/solitaire") ||
+          location.pathname.startsWith("/minesweeper")
             ? ""
             : "p-4"
         }`}
@@ -42,6 +44,7 @@ function AppRoutes() {
           <Route path="/kanban/*" element={<Kanban />} />
           <Route path="/inspect" element={<DataInspector />} />
           <Route path="/solitaire" element={<Solitaire />} />
+          <Route path="/minesweeper" element={<Minesweeper />} />
         </Routes>
       </main>
       {showFloofLayout && <Footer />}

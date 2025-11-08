@@ -29,6 +29,11 @@ export default function Navbar() {
             Solitaire
           </Link>
         </li>
+        <li>
+          <Link to="/minesweeper" className="hover:underline">
+            Minesweeper
+          </Link>
+        </li>
       </ul>
     </nav>
   );
