@@ -1,11 +1,47 @@
 // Immediately unregister if on localhost (development)
-if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+const isDevelopment = self.location.hostname === 'localhost' || 
+                      self.location.hostname === '127.0.0.1' ||
+                      self.location.hostname === '[::1]' ||
+                      self.location.protocol === 'http:';
+
+if (isDevelopment) {
+  // Unregister immediately
   self.registration?.unregister();
-  self.addEventListener('install', () => self.skipWaiting());
-  self.addEventListener('activate', () => self.clients.claim());
-  // Don't intercept any fetches in dev
-  self.addEventListener('fetch', () => {});
-  // Exit early
+  
+  // Skip waiting and claim clients immediately
+  self.addEventListener('install', (event) => {
+    event.waitUntil(self.skipWaiting());
+  });
+  
+  self.addEventListener('activate', (event) => {
+    event.waitUntil(
+      self.clients.claim().then(() => {
+        // Unregister after claiming clients
+        return self.registration.unregister();
+      })
+    );
+  });
+  
+  // Completely bypass all fetch requests in dev - don't intercept anything
+  // By not calling event.respondWith(), the browser handles the request normally
+  self.addEventListener('fetch', (event) => {
+    // Check if this is a Vite dev server request or any localhost request
+    const url = new URL(event.request.url);
+    if (url.hostname === 'localhost' || 
+        url.hostname === '127.0.0.1' || 
+        url.hostname === '[::1]' ||
+        url.pathname.startsWith('/@') ||
+        url.pathname.startsWith('/src/') ||
+        url.pathname.includes('vite') ||
+        url.pathname.includes('react-refresh')) {
+      // Don't intercept - let the browser handle it normally
+      // Do NOT call event.respondWith() - this allows normal browser fetch
+      return;
+    }
+    // For other requests, also don't intercept in dev
+  });
+  
+  // Exit early - don't run production code
 } else {
   // Production code below
   const CACHE_NAME = 'floofgg-cache-v4';

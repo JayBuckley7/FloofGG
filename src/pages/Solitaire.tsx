@@ -53,6 +53,13 @@ type Selection =
 const STORAGE_KEY = "floof-solitaire-v1"; // ✨ persist game state
 const SETTINGS_KEY = "floof-solitaire-settings-v1"; // ✨ persist settings
 
+const WIN_GIFS = [
+  "/images/cat.gif", // Cat jumping
+  "/images/baby.gif", // Baby celebrating
+  "/images/dog.gif", // Puppy sticker
+  "/images/girl.gif", // Anime kiss
+];
+
 interface GameSettings {
   hapticFeedback: boolean;
   showHints: boolean;
@@ -60,6 +67,7 @@ interface GameSettings {
   autoFlip: boolean;
   animationSpeed: "fast" | "normal" | "slow";
   noUnwinnable: boolean;
+  cardsToFlip: 1 | 3;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -525,11 +533,14 @@ const Solitaire = () => {
       autoFlip: true,
       animationSpeed: "normal",
       noUnwinnable: false,
+      cardsToFlip: 1,
     };
   });
 
   const [lastWasteFlipId, setLastWasteFlipId] = useState<string | null>(null);
   const [showNewGameConfirm, setShowNewGameConfirm] = useState(false);
+  const [showWinAnimation, setShowWinAnimation] = useState(false);
+  const [winGifUrl, setWinGifUrl] = useState<string>("");
 
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
@@ -744,25 +755,36 @@ const Solitaire = () => {
       return;
       }
 
-    // Get the card ID before updating
-    const cardToFlip = game.stock[game.stock.length - 1];
-    const cardId = cardToFlip.id;
+    const cardsToFlipCount = settings.cardsToFlip;
+    const cardIds: string[] = [];
     
     updateGame((draft) => {
-      const card = draft.stock.pop();
-      if (!card) return { changed: false, state: draft };
-      // Flip the card face-up - this will trigger the flip animation in Card component
-      card.faceUp = true;
-      draft.waste.push({ ...card });
+      const cardsToFlip: CardData[] = [];
+      // Flip the specified number of cards (1 or 3)
+      for (let i = 0; i < cardsToFlipCount && draft.stock.length > 0; i++) {
+        const card = draft.stock.pop();
+        if (card) {
+          cardIds.push(card.id);
+          card.faceUp = true;
+          cardsToFlip.push(card);
+        }
+      }
+      
+      if (cardsToFlip.length === 0) return { changed: false, state: draft };
+      
+      // Add cards to waste in reverse order so the last flipped card is on top
+      draft.waste.push(...cardsToFlip.reverse());
       return { changed: true, state: draft };
     });
     
-    // Set the flip ID for pop-in animation
-    setLastWasteFlipId(cardId);
-    setTimeout(() => setLastWasteFlipId(null), 600); // Match card flip animation duration
+    // Set the flip ID for pop-in animation (use the last card flipped)
+    if (cardIds.length > 0) {
+      setLastWasteFlipId(cardIds[cardIds.length - 1]);
+      setTimeout(() => setLastWasteFlipId(null), 600); // Match card flip animation duration
+    }
     
     resetSelection();
-  }, [game.stock, resetSelection, updateGame]);
+  }, [game.stock, resetSelection, updateGame, settings.cardsToFlip]);
 
   const handleTableauCardClick = useCallback(
     (columnIndex: number, cardIndex: number) => {
@@ -956,6 +978,50 @@ const Solitaire = () => {
     if (moved) resetSelection();
   }, [resetSelection, updateGame]);
 
+  const simulateWin = useCallback(() => {
+    updateGame((draft) => {
+      // Collect all cards
+      const allCards: CardData[] = [];
+      
+      // Get all cards from tableau
+      draft.tableau.forEach(col => {
+        col.forEach(card => {
+          allCards.push({ ...card, faceUp: true });
+        });
+      });
+      
+      // Get all cards from waste
+      draft.waste.forEach(card => {
+        allCards.push({ ...card, faceUp: true });
+      });
+      
+      // Get all cards from stock
+      draft.stock.forEach(card => {
+        allCards.push({ ...card, faceUp: true });
+      });
+      
+      // Sort cards by suit and rank
+      const sortedCards: CardData[][] = [[], [], [], []]; // One array per suit
+      allCards.forEach(card => {
+        const suitIndex = suits.indexOf(card.suit);
+        sortedCards[suitIndex].push(card);
+      });
+      
+      // Sort each suit by rank (A, 2, 3, ..., K)
+      sortedCards.forEach(suitCards => {
+        suitCards.sort((a, b) => a.value - b.value);
+      });
+      
+      // Move all cards to foundations
+      draft.foundations = sortedCards;
+      draft.tableau = [[], [], [], [], [], [], []];
+      draft.waste = [];
+      draft.stock = [];
+      
+      return { changed: true, state: draft };
+    });
+  }, [updateGame]);
+
   const undo = useCallback(() => {
     setHistory((prev) => {
       if (!prev.length) return prev;
@@ -968,7 +1034,26 @@ const Solitaire = () => {
   }, []);
 
   useEffect(() => {
-    setMessage(totalCardsInFoundation === 52 ? "Congratulations! You won the game." : "");
+    if (totalCardsInFoundation === 52) {
+      setMessage("Congratulations! You won the game.");
+      // Randomly select a GIF
+      const randomGif = WIN_GIFS[Math.floor(Math.random() * WIN_GIFS.length)];
+      console.log('Win detected! Setting GIF:', randomGif);
+      setWinGifUrl(randomGif);
+      setShowWinAnimation(true);
+      console.log('Win animation should be showing');
+      // Hide animation after 5 seconds (increased from 3)
+      const timer = setTimeout(() => {
+        setShowWinAnimation(false);
+        console.log('Win animation hidden');
+      }, 5000);
+      
+      // Cleanup timer if component unmounts or win condition changes
+      return () => clearTimeout(timer);
+    } else {
+      setMessage("");
+      // Don't reset showWinAnimation here - let it fade naturally
+    }
   }, [totalCardsInFoundation]);
 
   // Swipe gestures (kept from your version)
@@ -1110,6 +1195,14 @@ const Solitaire = () => {
       >
         Auto Play
       </button>
+      <button
+        type="button"
+        onClick={simulateWin}
+        className="rounded-full bg-pink-500 px-3 py-2 text-white shadow-md transition hover:bg-pink-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-white text-xs font-semibold"
+        title="Simulate Win"
+      >
+        🎉
+      </button>
     </div>
   );
 
@@ -1211,6 +1304,68 @@ const Solitaire = () => {
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
+        {/* Win Animation */}
+        {showWinAnimation && (
+          <div className="fixed inset-0 z-[100] pointer-events-none flex items-center justify-center">
+            {/* Confetti particles */}
+            <div className="absolute inset-0 overflow-hidden">
+              {Array.from({ length: 50 }).map((_, i) => {
+                const delay = Math.random() * 0.5;
+                const duration = 2 + Math.random() * 1;
+                const left = Math.random() * 100;
+                const colors = ['#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                return (
+                  <div
+                    key={i}
+                    className="absolute w-3 h-3 rounded-full animate-confetti"
+                    style={{
+                      left: `${left}%`,
+                      backgroundColor: color,
+                      animationDelay: `${delay}s`,
+                      animationDuration: `${duration}s`,
+                      top: '-10px',
+                    }}
+                  />
+                );
+              })}
+            </div>
+            
+            {/* Celebration message with GIF */}
+            <div className="relative z-10 text-center animate-bounce bg-black/20 rounded-2xl p-8 backdrop-blur-sm">
+              {winGifUrl ? (
+                <div className="mb-4 flex justify-center">
+                  <img 
+                    src={winGifUrl} 
+                    alt="Celebration" 
+                    className="w-48 h-48 object-contain"
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      console.error('GIF failed to load:', winGifUrl);
+                      // Fallback to emoji
+                      const target = e.target as HTMLImageElement;
+                      if (target.parentElement) {
+                        target.parentElement.innerHTML = '<div class="text-6xl">🎉</div>';
+                      }
+                    }}
+                    onLoad={() => {
+                      console.log('GIF loaded successfully:', winGifUrl);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className="mb-4 text-6xl">🎉</div>
+              )}
+              <div className="text-4xl font-bold text-white mb-2 drop-shadow-lg">
+                You Won!
+              </div>
+              <div className="text-xl text-white/90 drop-shadow-md">
+                Amazing job! 🎊
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* New Game Confirmation Modal */}
         {showNewGameConfirm && (
           <div
@@ -1377,6 +1532,28 @@ const Solitaire = () => {
                         )}
                       >
                         {speed.charAt(0).toUpperCase() + speed.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Cards to Flip */}
+                <div>
+                  <label className="text-sm font-semibold text-white block mb-2">Cards to Flip</label>
+                  <div className="flex gap-2">
+                    {([1, 3] as const).map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setSettings((s) => ({ ...s, cardsToFlip: count }))}
+                        className={clsx(
+                          "flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                          settings.cardsToFlip === count
+                            ? "bg-emerald-500 text-white"
+                            : "bg-white/10 text-white/70 hover:bg-white/20"
+                        )}
+                      >
+                        {count} Card{count > 1 ? 's' : ''}
                       </button>
                     ))}
                   </div>
@@ -1656,6 +1833,14 @@ const Solitaire = () => {
                 aria-label="Settings"
               >
                 <Settings className="w-5 h-5 text-white" />
+              </button>
+              <button
+                type="button"
+                onClick={simulateWin}
+                className="rounded-xl bg-pink-500 px-3 py-3 text-white shadow-lg active:scale-95 transition-transform hover:bg-pink-600 text-xs font-semibold"
+                title="Simulate Win"
+              >
+                🎉
               </button>
             </div>
             {message && (

@@ -116,6 +116,21 @@ body {
 }
 
 /* Card flip animation */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.animate-confetti {
+  animation: confetti-fall linear forwards;
+}
+
 @keyframes card-flip {
   0% {
     transform: rotateY(0deg);

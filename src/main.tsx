@@ -16,21 +16,30 @@ createRoot(document.getElementById("root")!).render(
 if ('serviceWorker' in navigator) {
   if (import.meta.env.DEV) {
     // Aggressively unregister service workers in development
-    navigator.serviceWorker.getRegistrations().then((registrations) => {
-      registrations.forEach((registration) => {
-        registration.unregister().then(() => {
-          console.log('Service worker unregistered');
-        });
-      });
-    });
-    // Also try to unregister by scope
-    navigator.serviceWorker.getRegistration().then((registration) => {
-      if (registration) {
-        registration.unregister().then(() => {
-          console.log('Service worker unregistered by scope');
-        });
+    const unregisterAll = async () => {
+      try {
+        // Get all registrations and unregister them
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map(reg => reg.unregister()));
+        
+        // Also try to unregister by scope
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          await registration.unregister();
+        }
+        
+        console.log('Service workers unregistered for development');
+      } catch (error) {
+        console.warn('Error unregistering service workers:', error);
       }
-    });
+    };
+    
+    // Unregister immediately and on page load
+    unregisterAll();
+    window.addEventListener('load', unregisterAll);
+    
+    // Also unregister on focus (in case user switches tabs)
+    window.addEventListener('focus', unregisterAll);
   } else if (import.meta.env.PROD) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/sw.js').catch((err) => {

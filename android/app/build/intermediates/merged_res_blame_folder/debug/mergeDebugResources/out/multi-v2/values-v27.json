@@ -1,0 +1,47 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.floofgg.app-mergeDebugResources-25:/values-v27/values-v27.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\TheJ\\.gradle\\caches\\8.11.1\\transforms\\ef234481c09f01fb9f0508a5da2b1126\\transformed\\core-splashscreen-1.0.1\\res\\values-v27\\values-v27.xml",
+                    "from": {
+                        "startLines": "2,3,4,7",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "55,136,229,405",
+                        "endLines": "2,3,6,9",
+                        "endColumns": "80,92,12,12",
+                        "endOffsets": "131,224,400,588"
+                    },
+                    "to": {
+                        "startLines": "8,9,10,13",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "438,519,612,788",
+                        "endLines": "8,9,12,15",
+                        "endColumns": "80,92,12,12",
+                        "endOffsets": "514,607,783,971"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\TheJ\\Documents\\Code\\FloofGG\\android\\app\\src\\main\\res\\values-v27\\styles.xml",
+                    "from": {
+                        "startLines": "3",
+                        "startColumns": "4",
+                        "startOffsets": "133",
+                        "endLines": "8",
+                        "endColumns": "12",
+                        "endOffsets": "516"
+                    },
+                    "to": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endLines": "7",
+                        "endColumns": "12",
+                        "endOffsets": "433"
+                    }
+                }
+            ]
+        }
+    ]
+}
