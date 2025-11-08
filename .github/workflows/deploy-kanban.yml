@@ -85,8 +85,9 @@ jobs:
     # ─── Cloud Build: build + deploy Cloud Run ─────────────
     - name: Submit build to Cloud Build
       run: |
+        CONVEX_DEPLOY_KEY_B64=$(echo -n "${{ env.CONVEX_DEPLOY_KEY }}" | base64 | tr -d '\n')
         gcloud builds submit \
           --project=floofgg \
           --config=cloudbuild.yaml \
-          --substitutions=_COMMIT_SHA=${{ github.sha }},_SERVICE_NAME=${{ steps.env.outputs.SERVICE_NAME }},_ENVIRONMENT=${{ steps.env.outputs.ENVIRONMENT }},_VITE_CONVEX_URL=${{ env.VITE_CONVEX_URL }},_CONVEX_DEPLOY_KEY=${{ env.CONVEX_DEPLOY_KEY }} \
+          --substitutions=_COMMIT_SHA=${{ github.sha }},_SERVICE_NAME=${{ steps.env.outputs.SERVICE_NAME }},_ENVIRONMENT=${{ steps.env.outputs.ENVIRONMENT }},_VITE_CONVEX_URL=${{ env.VITE_CONVEX_URL }},_CONVEX_DEPLOY_KEY_B64=${CONVEX_DEPLOY_KEY_B64} \
           --gcs-log-dir=gs://floofgg_cloudbuild/logs
